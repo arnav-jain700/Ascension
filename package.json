@@ -1,0 +1,27 @@
+{
+  "name": "ascension",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:full": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "npm run dev -w @ascension/web",
+    "dev:backend": "npm run dev -w @ascension/backend",
+    "dev:simple": "npm run dev:simple -w @ascension/backend",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:generate": "npm run build -w @ascension/db",
+    "db:migrate": "npm run migrate -w @ascension/db",
+    "db:migrate:deploy": "npm run migrate:deploy -w @ascension/db",
+    "db:studio": "npm run studio -w @ascension/db",
+    "db:up": "docker compose up -d postgres"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "concurrently": "^8.2.2"
+  },
+  "packageManager": "npm@10.9.2"
+}

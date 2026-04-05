@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ascension
+      POSTGRES_PASSWORD: ascension
+      POSTGRES_DB: ascension
+    volumes:
+      - ascension_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ascension -d ascension"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ascension_pg:

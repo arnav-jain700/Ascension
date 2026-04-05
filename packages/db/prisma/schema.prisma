@@ -1,0 +1,254 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  customer
+  admin
+}
+
+enum ProductCategory {
+  tshirt
+  jogger
+}
+
+enum Gender {
+  men
+  women
+  unisex
+}
+
+enum AddressType {
+  billing
+  shipping
+}
+
+enum FulfillmentStatus {
+  pending
+  shipped
+  delivered
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  role         UserRole @default(customer)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  addresses    Address[]
+  carts        Cart[]
+  orders       Order[]
+  notifications NotificationLog[]
+  campaigns    MarketingCampaign[]
+  auditLogs    AdminAuditLog[] @relation("AdminAuditActor")
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  name        String
+  description String          @default("")
+  category    ProductCategory
+  gender      Gender           @default(unisex)
+  basePrice   Decimal         @db.Decimal(12, 2)
+  imageUrls   String[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  variants ProductVariant[]
+}
+
+model ProductVariant {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku           String   @unique
+  size          String
+  color         String
+  stockQuantity Int      @default(0)
+  priceOverride Decimal? @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([productId])
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String?  @unique
+  updatedAt DateTime @updatedAt
+
+  items CartItem[]
+
+  @@index([userId])
+}
+
+model CartItem {
+  id        String         @id @default(cuid())
+  cartId    String
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity  Int            @default(1)
+
+  @@unique([cartId, variantId])
+  @@index([cartId])
+}
+
+model Address {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  street     String
+  city       String
+  state      String
+  postalCode String
+  country    String      @default("IN")
+  type       AddressType
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+model Order {
+  id                 String            @id @default(cuid())
+  userId             String
+  user               User              @relation(fields: [userId], references: [id])
+  subtotal           Decimal           @db.Decimal(12, 2)
+  taxAmount          Decimal           @db.Decimal(12, 2)
+  shippingCost       Decimal           @db.Decimal(12, 2)
+  totalAmount        Decimal           @db.Decimal(12, 2)
+  fulfillmentStatus  FulfillmentStatus @default(pending)
+  paymentStatus      PaymentStatus     @default(pending)
+  trackingNumber     String?
+  shippingStreet     String?
+  shippingCity       String?
+  shippingState      String?
+  shippingPostalCode String?
+  shippingCountry    String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  items          OrderItem[]
+  taxLines       OrderTaxLine[]
+  invoice        Invoice?
+  paymentIntents PaymentIntent[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id              String          @id @default(cuid())
+  orderId         String
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId       String?
+  variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  productName     String
+  variantLabel    String?
+  quantity        Int
+  priceAtPurchase Decimal         @db.Decimal(12, 2)
+
+  @@index([orderId])
+}
+
+model OrderTaxLine {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  taxType   String
+  rate      Decimal @db.Decimal(8, 4)
+  amount    Decimal @db.Decimal(12, 2)
+  stateCode String?
+
+  @@index([orderId])
+}
+
+model Invoice {
+  id             String   @id @default(cuid())
+  orderId        String   @unique
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  pdfUrl         String?
+  invoiceNumber  String   @unique
+  gstinSnapshot  String?
+  issuedAt       DateTime @default(now())
+}
+
+model PaymentIntent {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  gateway    String
+  externalId String
+  amount     Decimal  @db.Decimal(12, 2)
+  currency   String   @default("INR")
+  status     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([gateway, externalId])
+  @@index([orderId])
+}
+
+model MarketingCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String?
+  channel     String
+  templateKey String?
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model NotificationLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  channel   String
+  eventType String
+  payload   Json?
+  status    String
+  sentAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([sentAt])
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  adminUserId String
+  admin       User     @relation("AdminAuditActor", fields: [adminUserId], references: [id])
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([adminUserId])
+  @@index([createdAt])
+}
