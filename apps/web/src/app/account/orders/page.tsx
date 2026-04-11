@@ -37,96 +37,7 @@ interface OrderItem {
   image: string;
 }
 
-const mockOrders: Order[] = [
-  {
-    id: "1",
-    orderNumber: "ASC-2024-001",
-    date: "2024-01-15",
-    total: 2598,
-    status: "delivered",
-    items: [
-      {
-        id: "1-1",
-        name: "Men's Essential Tee",
-        slug: "mens-essential-tee",
-        variant: { size: "M", color: "black" },
-        quantity: 2,
-        price: 1299,
-        image: "/placeholder-product.jpg",
-      },
-    ],
-    shippingAddress: {
-      name: "John Doe",
-      address: "123 Main St, Apt 4B",
-      city: "Mumbai",
-      state: "Maharashtra",
-      postalCode: "400001",
-    },
-    trackingNumber: "TRACK123456789",
-    estimatedDelivery: "2024-01-18",
-  },
-  {
-    id: "2",
-    orderNumber: "ASC-2024-002",
-    date: "2024-01-20",
-    total: 3798,
-    status: "shipped",
-    items: [
-      {
-        id: "2-1",
-        name: "Women's Essential Tee",
-        slug: "womens-essential-tee",
-        variant: { size: "L", color: "black" },
-        quantity: 1,
-        price: 1299,
-        image: "/placeholder-product.jpg",
-      },
-      {
-        id: "2-2",
-        name: "Women's Joggers",
-        slug: "womens-joggers",
-        variant: { size: "M", color: "gray" },
-        quantity: 1,
-        price: 2499,
-        image: "/placeholder-product.jpg",
-      },
-    ],
-    shippingAddress: {
-      name: "John Doe",
-      address: "123 Main St, Apt 4B",
-      city: "Mumbai",
-      state: "Maharashtra",
-      postalCode: "400001",
-    },
-    trackingNumber: "TRACK987654321",
-    estimatedDelivery: "2024-01-25",
-  },
-  {
-    id: "3",
-    orderNumber: "ASC-2024-003",
-    date: "2024-01-25",
-    total: 1299,
-    status: "processing",
-    items: [
-      {
-        id: "3-1",
-        name: "Men's Joggers",
-        slug: "mens-joggers",
-        variant: { size: "L", color: "navy" },
-        quantity: 1,
-        price: 2499,
-        image: "/placeholder-product.jpg",
-      },
-    ],
-    shippingAddress: {
-      name: "John Doe",
-      address: "123 Main St, Apt 4B",
-      city: "Mumbai",
-      state: "Maharashtra",
-      postalCode: "400001",
-    },
-  },
-];
+
 
 export default function AccountOrdersPage() {
   const { user } = useAuth();
@@ -150,7 +61,7 @@ export default function AccountOrdersPage() {
         
         // Simulate API call with mock data
         setTimeout(() => {
-          setOrders(mockOrders);
+          setOrders([]);
           setLoading(false);
         }, 1000);
       } catch (err) {

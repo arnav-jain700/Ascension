@@ -1,5 +1,10 @@
-import type { HomeProductPreview } from "@/components/home-product-grid";
-
+export interface HomeProductPreview {
+  slug: string;
+  name: string;
+  category: string;
+  priceLabel: string;
+  tone: string;
+}
 /** Placeholder grid until Stage 4 catalog API. Slugs align with future PDP routes. */
 export const homeProductPreviews: HomeProductPreview[] = [
   {

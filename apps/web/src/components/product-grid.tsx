@@ -22,20 +22,19 @@ export function ProductGrid({ products, loading }: ProductGridProps) {
     );
   }
 
-  if (products.length === 0) {
+  const safeProducts = Array.isArray(products) ? products : [];
+
+  if (safeProducts.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-asc-charcoal mb-4">
-          <svg
-            className="w-16 h-16 mx-auto mb-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          >
-            <path d="M9 2L3 7v9a2 2 0 002 2h7a2 2 0 002-2V7l-6-5z" />
-            <path d="M9 22V12h6v10" />
-          </svg>
+          <Image
+            src="/empty-state.png"
+            alt="No products"
+            width={120}
+            height={120}
+            className="mx-auto mb-6 opacity-70"
+          />
         </div>
         <h3 className="text-lg font-medium text-asc-matte mb-2">No products found</h3>
         <p className="text-asc-charcoal">Try adjusting your filters or browse all products.</p>
@@ -45,7 +44,7 @@ export function ProductGrid({ products, loading }: ProductGridProps) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {products.map((product) => (
+      {safeProducts.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>

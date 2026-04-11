@@ -2,9 +2,13 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductOptions } from "@/components/product-options";
 import { SizeGuide } from "@/components/size-guide";
+import { FitFinder } from "@/components/fit-finder";
+import { ProductReviews } from "@/components/product-reviews";
+import { RecommendationsSlider } from "@/components/recommendations-slider";
 import { apiClient, Product, ProductVariant } from "@/lib/api";
 import { useCart } from "@/hooks/use-cart";
 
@@ -19,6 +23,8 @@ export default function ProductDetailPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -61,6 +67,16 @@ export default function ProductDetailPage({ params }: Props) {
       image: product.imageUrls[0] || "/placeholder-product.jpg",
       quantity,
     });
+    
+    setAddedToCart(true);
+    setTimeout(() => {
+      setAddedToCart(false);
+    }, 2000);
+  };
+
+  const handleBuyNow = () => {
+    handleAddToCart();
+    router.push("/checkout");
   };
 
   const handleAddToWishlist = () => {
@@ -154,6 +170,7 @@ export default function ProductDetailPage({ params }: Props) {
             variants={product.variants}
             onVariantChange={setSelectedVariant}
             selectedVariant={selectedVariant}
+            siblingColors={product.siblingColors}
           />
 
           {/* Quantity and Actions */}
@@ -181,23 +198,34 @@ export default function ProductDetailPage({ params }: Props) {
                 </button>
               </div>
 
-              <button
-                onClick={() => setShowSizeGuide(true)}
-                className="text-sm text-asc-accent hover:text-asc-matte transition-colors underline"
-              >
-                Size Guide
-              </button>
+              <div className="flex flex-col items-start">
+                <button
+                  onClick={() => setShowSizeGuide(true)}
+                  className="text-sm font-medium text-asc-matte hover:text-asc-accent transition-colors underline"
+                >
+                  Size Guide
+                </button>
+                <FitFinder productName={product.name} />
+              </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleAddToCart}
+                disabled={!inStock || !selectedVariant || addedToCart}
+                className="flex-1 bg-asc-canvas border-2 border-asc-matte text-asc-matte px-6 py-3 font-medium rounded-md transition-colors hover:bg-asc-matte hover:text-asc-canvas disabled:border-asc-border disabled:text-asc-charcoal disabled:cursor-not-allowed"
+              >
+                {addedToCart ? "Added to Cart ✓" : (inStock ? "Add to Cart" : "Out of Stock")}
+              </button>
+
+              <button
+                onClick={handleBuyNow}
                 disabled={!inStock || !selectedVariant}
                 className="flex-1 bg-asc-matte text-asc-canvas px-6 py-3 font-medium rounded-md transition-colors hover:bg-asc-charcoal disabled:bg-asc-border disabled:text-asc-charcoal disabled:cursor-not-allowed"
               >
-                {inStock ? "Add to Cart" : "Out of Stock"}
+                Buy Now
               </button>
-
+              
               <button
                 onClick={handleAddToWishlist}
                 className="p-3 border border-asc-border rounded-md text-asc-matte hover:border-asc-accent hover:text-asc-accent transition-colors"
@@ -225,6 +253,12 @@ export default function ProductDetailPage({ params }: Props) {
 
       {/* Size Guide Modal */}
       <SizeGuide isOpen={showSizeGuide} onClose={() => setShowSizeGuide(false)} />
+
+      {/* Reviews Section */}
+      <ProductReviews productSlug={product.slug} initialReviews={(product as any).reviews || []} />
+
+      {/* Recommendations Slider */}
+      <RecommendationsSlider productSlug={product.slug} />
     </div>
   );
 }

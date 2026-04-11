@@ -1,7 +1,8 @@
 import express from "express";
 import { prisma } from "../index";
 import { asyncHandler } from "../middleware/errorHandler";
-import { AuthenticatedRequest } from "../middleware/auth";
+import { AuthenticatedRequest, authMiddleware } from "../middleware/auth";
+import { sendOrderConfirmationEmail } from "../services/emailService";
 
 const router = express.Router();
 
@@ -25,7 +26,9 @@ router.get("/", asyncHandler(async (req: AuthenticatedRequest, res: express.Resp
 
   // Build order clause
   const orderBy: any = {};
-  orderBy[sort as string] = order;
+  if (sort === "newest") { orderBy["createdAt"] = "desc"; }
+  else if (sort === "oldest") { orderBy["createdAt"] = "asc"; }
+  else { orderBy[sort as string] = order; }
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
@@ -70,6 +73,39 @@ router.get("/", asyncHandler(async (req: AuthenticatedRequest, res: express.Resp
   });
 }));
 
+// Track order by order number (public)
+router.get("/track/:orderNumber", asyncHandler(async (req: express.Request, res: express.Response) => {
+  const { orderNumber } = req.params;
+
+  const order = await prisma.order.findUnique({
+    where: { orderNumber },
+    select: {
+      orderNumber: true,
+      status: true,
+      shippingAddress: true,
+      trackingNumber: true,
+      carrier: true,
+      estimatedDelivery: true,
+      createdAt: true,
+      shippedAt: true,
+      deliveredAt: true,
+      items: {
+        select: {
+          name: true,
+          quantity: true,
+          image: true,
+        }
+      }
+    }
+  });
+
+  if (!order) {
+    return res.status(404).json({ success: false, error: "Not Found", message: "Order not found" });
+  }
+
+  res.status(200).json({ success: true, data: order });
+}));
+
 // Get single order
 router.get("/:id", asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
   const { id } = req.params;
@@ -109,8 +145,82 @@ router.get("/:id", asyncHandler(async (req: AuthenticatedRequest, res: express.R
   });
 }));
 
+// Create order (guest checkout)
+router.post("/guest", asyncHandler(async (req: express.Request, res: express.Response) => {
+  const {
+    items, shippingAddress, billingAddress, paymentMethod,
+    subtotal, shippingCost = 0, tax = 0, discount = 0, total, notes,
+    guestEmail, guestName, promoCodeId
+  } = req.body;
+
+  if (!items || items.length === 0) return res.status(400).json({ success: false, message: "Order items required" });
+  if (!shippingAddress || !paymentMethod || !guestEmail) return res.status(400).json({ success: false, message: "Shipping address, payment method, and email are required" });
+
+  const orderNumber = `ASC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+  const order = await prisma.order.create({
+    data: {
+      orderNumber,
+      status: "PENDING",
+      subtotal: Number(subtotal),
+      shippingCost: Number(shippingCost),
+      tax: Number(tax),
+      discount: Number(discount),
+      total: Number(total),
+      shippingAddress,
+      billingAddress: billingAddress || shippingAddress,
+      notes,
+      internalNotes: `Guest Checkout - Email: ${guestEmail}, Name: ${guestName}`,
+      promoCodeId,
+      items: {
+        create: items.map((item: any) => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          name: item.name,
+          sku: item.sku || "VAR",
+          price: Number(item.price),
+          quantity: Number(item.quantity),
+          total: Number(item.price * item.quantity),
+          image: item.image,
+        })),
+      },
+      payment: {
+        create: {
+          amount: Number(total),
+          method: paymentMethod.type,
+          provider: paymentMethod.provider,
+          status: "PENDING",
+        },
+      },
+    },
+    include: { items: { include: { product: true, variant: true } }, payment: true },
+  });
+
+  if (promoCodeId) await prisma.promoCode.update({ where: { id: promoCodeId }, data: { usageCount: { increment: 1 } } });
+
+  // Update inventory
+  for (const item of items) {
+    if (item.variantId) {
+      await prisma.productVariant.update({
+        where: { id: item.variantId },
+        data: { inventory: { decrement: Number(item.quantity) } },
+      });
+    } else {
+      await prisma.inventory.update({
+        where: { productId: item.productId },
+        data: { quantity: { decrement: Number(item.quantity) } },
+      });
+    }
+  }
+
+  // Dispatch Confirmation Email
+  await sendOrderConfirmationEmail(guestEmail, guestName, orderNumber, items, total).catch(console.error);
+
+  res.status(201).json({ success: true, message: "Guest Order created successfully", data: order });
+}));
+
 // Create order (checkout)
-router.post("/", asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+router.post("/", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
   const {
     items,
     shippingAddress,
@@ -122,6 +232,7 @@ router.post("/", asyncHandler(async (req: AuthenticatedRequest, res: express.Res
     discount = 0,
     total,
     notes,
+    promoCodeId,
   } = req.body;
 
   if (!items || items.length === 0) {
@@ -157,6 +268,7 @@ router.post("/", asyncHandler(async (req: AuthenticatedRequest, res: express.Res
       shippingAddress,
       billingAddress: billingAddress || shippingAddress,
       notes,
+      promoCodeId,
       items: {
         create: items.map((item: any) => ({
           productId: item.productId,
@@ -190,6 +302,14 @@ router.post("/", asyncHandler(async (req: AuthenticatedRequest, res: express.Res
     },
   });
 
+  // Increment promo usage
+  if (promoCodeId) {
+    await prisma.promoCode.update({
+      where: { id: promoCodeId },
+      data: { usageCount: { increment: 1 } }
+    });
+  }
+
   // Update inventory
   for (const item of items) {
     if (item.variantId) {
@@ -217,6 +337,12 @@ router.post("/", asyncHandler(async (req: AuthenticatedRequest, res: express.Res
   // await prisma.cartItem.deleteMany({
   //   where: { userId: req.user!.id },
   // });
+
+  // Get User Details for Email
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { email: true, name: true } });
+  if (user) {
+    await sendOrderConfirmationEmail(user.email, user.name, orderNumber, items, total).catch(console.error);
+  }
 
   res.status(201).json({
     success: true,
@@ -277,6 +403,19 @@ router.put("/:id/status", asyncHandler(async (req: AuthenticatedRequest, res: ex
     },
   });
 
+  // Calculate and funnel reward points for loyalty engine
+  if ((status === "PROCESSING" || status === "DELIVERED") && 
+      (order.status !== "PROCESSING" && order.status !== "DELIVERED") && 
+      order.userId) {
+    const pointsToAdd = Math.floor(updatedOrder.total / 100);
+    if (pointsToAdd > 0) {
+      await prisma.user.update({
+        where: { id: order.userId },
+        data: { rewardPoints: { increment: pointsToAdd } },
+      });
+    }
+  }
+
   res.status(200).json({
     success: true,
     message: "Order status updated successfully",
@@ -293,6 +432,9 @@ router.post("/:id/cancel", asyncHandler(async (req: AuthenticatedRequest, res: e
     where: { 
       id,
       userId: req.user!.id,
+    },
+    include: {
+      items: true,
     },
   });
 

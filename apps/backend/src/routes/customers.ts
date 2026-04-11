@@ -1,9 +1,11 @@
 import express from "express";
 import { prisma } from "../index";
 import { asyncHandler } from "../middleware/errorHandler";
-import { AuthenticatedRequest } from "../middleware/auth";
+import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 
 const router = express.Router();
+
+router.use(authMiddleware);
 
 // Get customer addresses
 router.get("/addresses", asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {

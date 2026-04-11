@@ -9,7 +9,11 @@ interface User {
   lastName: string;
   email: string;
   phone?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  addresses?: any[];
   role: "customer" | "admin";
+  settings?: any;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,9 +21,10 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; requires2FA?: boolean; tempToken?: string }>;
   register: (userData: RegisterData) => Promise<boolean>;
   logout: () => void;
+  updateUser: (user: User) => void;
   loading: boolean;
 }
 
@@ -29,6 +34,16 @@ interface RegisterData {
   email: string;
   password: string;
   phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  emailMarketing?: boolean;
+  smsNotifications?: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; requires2FA?: boolean; tempToken?: string }> => {
     try {
       const response = await fetch("/api/v1/auth/login", {
         method: "POST",
@@ -70,20 +85,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setToken(data.token);
+      if (response.ok || response.status === 202) {
+        const json = await response.json();
+        const data = json.data;
+
+        if (data.requires2FA) {
+          return { success: true, requires2FA: true, tempToken: data.tempToken };
+        }
+
+        setToken(data.sessionToken);
         setUser(data.user);
         
-        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(TOKEN_KEY, data.sessionToken);
         localStorage.setItem(USER_KEY, JSON.stringify(data.user));
         
-        return true;
+        return { success: true };
       }
-      return false;
+      return { success: false };
     } catch (error) {
       console.error("Login error:", error);
-      return false;
+      return { success: false };
     }
   };
 
@@ -94,15 +115,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({
+          name: `${userData.firstName} ${userData.lastName}`.trim(),
+          ...userData,
+        }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setToken(data.token);
+        const json = await response.json();
+        const data = json.data;
+        setToken(data.sessionToken);
         setUser(data.user);
         
-        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(TOKEN_KEY, data.sessionToken);
         localStorage.setItem(USER_KEY, JSON.stringify(data.user));
         
         return true;
@@ -121,12 +146,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(USER_KEY);
   };
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+  };
+
   const value: AuthContextType = {
     user,
     token,
     login,
     register,
     logout,
+    updateUser,
     loading,
   };
 

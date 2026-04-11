@@ -14,6 +14,7 @@ import { customerRoutes } from "./routes/customers";
 import { orderRoutes } from "./routes/orders";
 import { adminRoutes } from "./routes/admin";
 import { analyticsRoutes } from "./routes/analytics";
+import { marketingRoutes } from "./routes/marketing";
 
 // Load environment variables
 dotenv.config();
@@ -42,6 +43,9 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "https:"],
     },
   },
+  xssFilter: true,
+  noSniff: true,
+  frameguard: { action: 'deny' },
 }));
 
 // CORS configuration
@@ -55,6 +59,7 @@ app.use(cors({
 }));
 
 // Rate limiting
+app.set("trust proxy", 1);
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
@@ -96,6 +101,7 @@ app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/upload', fileUploadRoutes);
+app.use('/api/v1/marketing', marketingRoutes);
 
 // Protected routes (require authentication)
 app.use('/api/v1/profile', authMiddleware);

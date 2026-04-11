@@ -38,16 +38,13 @@ export function CartDrawer() {
           <div className="flex-1 overflow-y-auto p-4">
             {items.length === 0 ? (
               <div className="text-center py-8">
-                <svg
-                  className="w-16 h-16 mx-auto mb-4 text-asc-charcoal"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                >
-                  <path d="M9 2L3 7v9a2 2 0 002 2h7a2 2 0 002-2V7l-6-5z" />
-                  <path d="M9 22V12h6v10" />
-                </svg>
+                <Image
+                  src="/empty-state.png"
+                  alt="Empty Cart"
+                  width={150}
+                  height={150}
+                  className="mx-auto mb-4 opacity-75"
+                />
                 <p className="text-asc-charcoal mb-4">Your cart is empty</p>
                 <button
                   onClick={() => setIsOpen(false)}

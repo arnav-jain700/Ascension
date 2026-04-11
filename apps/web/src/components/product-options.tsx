@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProductVariant } from "@/lib/api";
 
 interface ProductOptionsProps {
   variants: ProductVariant[];
   onVariantChange: (variant: ProductVariant) => void;
   selectedVariant?: ProductVariant;
+  siblingColors?: { id: string; slug: string; sku: string; color: string; images: Record<string, unknown>[] }[];
 }
 
-export function ProductOptions({ variants, onVariantChange, selectedVariant }: ProductOptionsProps) {
+export function ProductOptions({ variants, onVariantChange, selectedVariant, siblingColors }: ProductOptionsProps) {
+  const router = useRouter();
   const [selectedSize, setSelectedSize] = useState(selectedVariant?.size || "");
   const [selectedColor, setSelectedColor] = useState(selectedVariant?.color || "");
 
@@ -106,6 +109,16 @@ export function ProductOptions({ variants, onVariantChange, selectedVariant }: P
               </button>
             );
           })}
+          {/* Sibling Products sharing the same SKU but different colors */}
+          {siblingColors?.map((sibling) => (
+            <button
+              key={sibling.id}
+              onClick={() => router.push(`/products/${sibling.slug}`)}
+              className="px-4 py-2 border rounded-md text-sm font-medium transition-colors capitalize border-asc-border text-asc-matte hover:border-asc-accent hover:text-asc-accent"
+            >
+              {sibling.color || "Other Color"}
+            </button>
+          ))}
         </div>
       </div>
 

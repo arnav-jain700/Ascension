@@ -40,18 +40,6 @@ export function SizeGuide({ isOpen, onClose }: SizeGuideProps) {
                   </thead>
                   <tbody>
                     <tr className="border-b border-asc-border">
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">XS</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">86-91</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">66-69</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">42-44</td>
-                    </tr>
-                    <tr className="border-b border-asc-border">
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">S</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">96-101</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">71-74</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">46-48</td>
-                    </tr>
-                    <tr className="border-b border-asc-border">
                       <td className="py-2 px-3 text-sm text-asc-charcoal">M</td>
                       <td className="py-2 px-3 text-sm text-asc-charcoal">106-111</td>
                       <td className="py-2 px-3 text-sm text-asc-charcoal">76-79</td>
@@ -94,18 +82,6 @@ export function SizeGuide({ isOpen, onClose }: SizeGuideProps) {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-asc-border">
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">XS</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">71-76</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">96-99</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">86-91</td>
-                    </tr>
-                    <tr className="border-b border-asc-border">
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">S</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">81-86</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">101-104</td>
-                      <td className="py-2 px-3 text-sm text-asc-charcoal">96-101</td>
-                    </tr>
                     <tr className="border-b border-asc-border">
                       <td className="py-2 px-3 text-sm text-asc-charcoal">M</td>
                       <td className="py-2 px-3 text-sm text-asc-charcoal">91-96</td>

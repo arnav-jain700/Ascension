@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { apiClient } from "@/lib/api";
 import {
   AccountSection,
   Field,
@@ -12,13 +13,13 @@ import {
 } from "@/components/account-section";
 
 interface SecuritySettings {
-  twoFactorEnabled: boolean;
   emailNotifications: boolean;
   smsNotifications: boolean;
   sessionTimeout: number;
   loginAlerts: boolean;
   passwordLastChanged: string;
   activeSessions: ActiveSession[];
+  isTwoFactorEnabled: boolean;
 }
 
 interface ActiveSession {
@@ -31,37 +32,10 @@ interface ActiveSession {
   isCurrent: boolean;
 }
 
-const mockSecuritySettings: SecuritySettings = {
-  twoFactorEnabled: false,
-  emailNotifications: true,
-  smsNotifications: false,
-  sessionTimeout: 30,
-  loginAlerts: true,
-  passwordLastChanged: "2024-01-15",
-  activeSessions: [
-    {
-      id: "1",
-      device: "Windows PC",
-      browser: "Chrome 120",
-      location: "Mumbai, India",
-      ipAddress: "192.168.1.1",
-      lastActive: "2024-01-25T10:30:00Z",
-      isCurrent: true,
-    },
-    {
-      id: "2",
-      device: "iPhone 14",
-      browser: "Safari 17",
-      location: "Delhi, India",
-      ipAddress: "192.168.1.2",
-      lastActive: "2024-01-24T15:45:00Z",
-      isCurrent: false,
-    },
-  ],
-};
+
 
 export default function AccountSecurityPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [settings, setSettings] = useState<SecuritySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +46,8 @@ export default function AccountSecurityPage() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [twoFactorSetup, setTwoFactorSetup] = useState<{ secret: string, qrCodeUrl: string } | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,18 +56,21 @@ export default function AccountSecurityPage() {
 
       try {
         setLoading(true);
-        // TODO: Implement actual API call
-        // const response = await fetch("/api/v1/security/settings", {
-        //   headers: {
-        //     "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
-        //   },
-        // });
-        
-        // Simulate API call with mock data
-        setTimeout(() => {
-          setSettings(mockSecuritySettings);
-          setLoading(false);
-        }, 1000);
+        const [settingsRes, sessionsRes] = await Promise.all([
+          apiClient.request<any>("/api/v1/auth/security/settings"),
+          apiClient.request<any>("/api/v1/auth/sessions"),
+        ]);
+
+        setSettings({
+          emailNotifications: settingsRes?.settings?.emailNotifications || false,
+          smsNotifications: settingsRes?.settings?.smsNotifications || false,
+          sessionTimeout: settingsRes?.settings?.sessionTimeout || 30,
+          loginAlerts: settingsRes?.settings?.loginAlerts || false,
+          passwordLastChanged: settingsRes?.passwordChangedAt || "",
+          activeSessions: sessionsRes || [],
+          isTwoFactorEnabled: settingsRes?.isTwoFactorEnabled || false,
+        });
+        setLoading(false);
       } catch (err) {
         setError("Failed to load security settings. Please try again.");
         setLoading(false);
@@ -117,18 +96,13 @@ export default function AccountSecurityPage() {
     }
 
     try {
-      // TODO: Implement actual API call
-      // const response = await fetch("/api/v1/security/change-password", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
-      //   },
-      //   body: JSON.stringify({
-      //     currentPassword: passwordData.currentPassword,
-      //     newPassword: passwordData.newPassword,
-      //   }),
-      // });
+      await apiClient.request("/api/v1/auth/change-password", {
+        method: "PUT",
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
 
       setSuccess("Password changed successfully!");
       setPasswordData({
@@ -149,53 +123,58 @@ export default function AccountSecurityPage() {
     }
   };
 
-  const handleToggle2FA = async () => {
-    if (!settings) return;
-
+  const handleGenerate2FA = async () => {
     try {
-      // TODO: Implement actual API call
-      // const response = await fetch("/api/v1/security/toggle-2fa", {
-      //   method: "POST",
-      //   headers: {
-      //     "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
-      //   },
-      // });
-
-      setSettings({
-        ...settings,
-        twoFactorEnabled: !settings.twoFactorEnabled,
+      const response = await apiClient.request<any>("/api/v1/auth/2fa/generate", {
+        method: "POST"
       });
-      
-      setSuccess(
-        settings.twoFactorEnabled 
-          ? "Two-factor authentication disabled"
-          : "Two-factor authentication enabled"
-      );
+      setTwoFactorSetup({ secret: response.secret, qrCodeUrl: response.qrCodeUrl });
+      setShow2FAForm(true);
     } catch (err) {
-      setError("Failed to update two-factor authentication settings.");
+      setError("Failed to generate 2FA credentials.");
     }
   };
 
-  const handleSettingChange = (key: keyof SecuritySettings, value: any) => {
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.request("/api/v1/auth/2fa/verify", {
+        method: "POST",
+        body: JSON.stringify({ code: twoFactorCode })
+      });
+      setSuccess("Two-Factor Authentication is now actively protecting your account!");
+      setShow2FAForm(false);
+      setTwoFactorSetup(null);
+      if (settings) setSettings({ ...settings, isTwoFactorEnabled: true });
+    } catch (err) {
+      setError("Failed to verify code. It may have expired, or time is out of sync.");
+    }
+  };
+
+  const handleSettingChange = async (key: keyof SecuritySettings, value: any) => {
     if (!settings) return;
     
-    setSettings({
-      ...settings,
-      [key]: value,
-    });
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+
+    try {
+      await apiClient.request("/api/v1/auth/security/settings", {
+        method: "PUT",
+        body: JSON.stringify({ [key]: value })
+      });
+    } catch {
+      setError("Failed to update security settings.");
+      setSettings(settings); // revert UI
+    }
   };
 
   const handleRevokeSession = async (sessionId: string) => {
     if (!settings) return;
 
     try {
-      // TODO: Implement actual API call
-      // const response = await fetch(`/api/v1/security/revoke-session/${sessionId}`, {
-      //   method: "DELETE",
-      //   headers: {
-      //     "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
-      //   },
-      // });
+      await apiClient.request(`/api/v1/auth/sessions/${sessionId}`, {
+        method: "DELETE",
+      });
 
       setSettings({
         ...settings,
@@ -214,13 +193,9 @@ export default function AccountSecurityPage() {
     if (!settings) return;
 
     try {
-      // TODO: Implement actual API call
-      // const response = await fetch("/api/v1/security/revoke-all-sessions", {
-      //   method: "DELETE",
-      //   headers: {
-      //     "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
-      //   },
-      // });
+      await apiClient.request("/api/v1/auth/sessions", {
+        method: "DELETE",
+      });
 
       setSettings({
         ...settings,
@@ -230,6 +205,28 @@ export default function AccountSecurityPage() {
       setSuccess("All other sessions revoked successfully");
     } catch (err) {
       setError("Failed to revoke sessions.");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm("Are you sure you want to permanently delete your account? This action cannot be undone.")) return;
+
+    try {
+      const response = await fetch("/api/v1/auth/account", {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
+        },
+      });
+
+      if (response.ok) {
+        logout();
+        window.location.href = "/";
+      } else {
+        setError("Failed to delete account. Please try again.");
+      }
+    } catch (err) {
+      setError("Failed to delete account.");
     }
   };
 
@@ -296,7 +293,7 @@ export default function AccountSecurityPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-asc-charcoal">Last changed: {new Date(settings.passwordLastChanged).toLocaleDateString()}</p>
+                <p className="text-asc-charcoal">Last changed: {settings.passwordLastChanged ? new Date(settings.passwordLastChanged).toLocaleDateString() : "Never"}</p>
                 <p className="text-sm text-asc-charcoal">Keep your password secure and change it regularly</p>
               </div>
               <button
@@ -350,83 +347,70 @@ export default function AccountSecurityPage() {
           </div>
         </div>
 
-        {/* Two-Factor Authentication */}
+        {/* 2FA Section */}
         <div className="border border-asc-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-asc-matte mb-4">Two-Factor Authentication</h3>
+          <h3 className="text-lg font-semibold text-asc-matte mb-4">Authenticator App (2FA)</h3>
           
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-asc-charcoal">Add an extra layer of security to your account</p>
-                <p className="text-sm text-asc-charcoal">Require a verification code in addition to your password</p>
+                <p className="text-asc-charcoal flex items-center gap-2">
+                  Status: 
+                  {settings.isTwoFactorEnabled ? (
+                    <span className="text-green-700 font-semibold bg-green-100 px-2 py-0.5 rounded-full text-xs uppercase">Protected</span>
+                  ) : (
+                    <span className="text-yellow-700 font-semibold bg-yellow-100 px-2 py-0.5 rounded-full text-xs uppercase">Unprotected</span>
+                  )}
+                </p>
+                <p className="text-sm text-asc-charcoal mt-1">Bind this account to Google Authenticator or an equivalent time-based key generator to prevent credential hijacking.</p>
               </div>
-              <button
-                onClick={handleToggle2FA}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.twoFactorEnabled ? "bg-asc-accent" : "bg-asc-border"
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.twoFactorEnabled ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
-            </div>
-            
-            <div className={`text-sm ${settings.twoFactorEnabled ? "text-green-600" : "text-asc-charcoal"}`}>
-              {settings.twoFactorEnabled ? (
-                <p>✅ Two-factor authentication is enabled</p>
-              ) : (
-                <p>⚠️ Two-factor authentication is disabled</p>
+              {!settings.isTwoFactorEnabled && (
+                <button
+                  onClick={() => show2FAForm ? setShow2FAForm(false) : handleGenerate2FA()}
+                  className="text-asc-accent hover:text-asc-matte transition-colors font-medium whitespace-nowrap ml-4"
+                >
+                  {show2FAForm ? "Cancel" : "Setup Authenticator"}
+                </button>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Notification Settings */}
-        <div className="border border-asc-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-asc-matte mb-4">Security Notifications</h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-asc-matte">Email notifications</p>
-                <p className="text-sm text-asc-charcoal">Get email alerts for security events</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={settings.emailNotifications}
-                onChange={(e) => handleSettingChange("emailNotifications", e.target.checked)}
-                className="h-4 w-4 text-asc-accent border-asc-border rounded focus:ring-asc-accent"
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-asc-matte">SMS notifications</p>
-                <p className="text-sm text-asc-charcoal">Get SMS alerts for security events</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={settings.smsNotifications}
-                onChange={(e) => handleSettingChange("smsNotifications", e.target.checked)}
-                className="h-4 w-4 text-asc-accent border-asc-border rounded focus:ring-asc-accent"
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-asc-matte">Login alerts</p>
-                <p className="text-sm text-asc-charcoal">Get notified when someone logs into your account</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={settings.loginAlerts}
-                onChange={(e) => handleSettingChange("loginAlerts", e.target.checked)}
-                className="h-4 w-4 text-asc-accent border-asc-border rounded focus:ring-asc-accent"
-              />
-            </div>
+            {show2FAForm && twoFactorSetup && (
+              <form onSubmit={handleVerify2FA} className="space-y-6 border-t border-asc-border pt-6 mt-4">
+                <div className="flex flex-col md:flex-row gap-8 items-start">
+                  <div className="bg-white p-2 border-2 border-asc-border rounded-xl">
+                    <img src={twoFactorSetup.qrCodeUrl} alt="2FA QR Code" className="w-48 h-48 object-contain" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-asc-matte mb-2">Configure Tracking App</h4>
+                    <ul className="list-decimal list-inside text-sm text-asc-charcoal space-y-2 mb-6">
+                      <li>Download Google Authenticator or Authy.</li>
+                      <li>Scan the QR code block visually.</li>
+                      <li>Alternatively, bind via manual string: <code className="bg-asc-sand px-1.5 py-0.5 rounded text-asc-matte ml-1 select-all">{twoFactorSetup.secret}</code></li>
+                      <li>Enter the rotating 6-digit pin generated by your app below.</li>
+                    </ul>
+                    
+                    <Field label="Verification Code" htmlFor="twoFactorCode">
+                      <Input
+                        id="twoFactorCode"
+                        type="text"
+                        maxLength={6}
+                        value={twoFactorCode}
+                        onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="000000"
+                        className="text-center tracking-widest text-lg font-mono"
+                      />
+                    </Field>
+                  </div>
+                </div>
+                
+                <FormActions>
+                  <PrimaryButton type="submit" disabled={twoFactorCode.length !== 6}>Verify & Enable</PrimaryButton>
+                  <SecondaryButton type="button" onClick={() => setShow2FAForm(false)}>
+                    Cancel
+                  </SecondaryButton>
+                </FormActions>
+              </form>
+            )}
           </div>
         </div>
 
@@ -503,7 +487,10 @@ export default function AccountSecurityPage() {
                 <p className="text-asc-matte">Delete Account</p>
                 <p className="text-sm text-asc-charcoal">Permanently delete your account and all data</p>
               </div>
-              <button className="px-4 py-2 border border-red-200 text-red-600 rounded-md hover:bg-red-50 transition-colors">
+              <button 
+                onClick={handleDeleteAccount}
+                className="px-4 py-2 border border-red-200 text-red-600 rounded-md hover:bg-red-50 transition-colors"
+              >
                 Delete Account
               </button>
             </div>

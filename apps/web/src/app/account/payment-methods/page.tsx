@@ -18,39 +18,7 @@ interface PaymentMethod {
   bankName?: string;
 }
 
-const mockPaymentMethods: PaymentMethod[] = [
-  {
-    id: "1",
-    type: "card",
-    provider: "visa",
-    last4: "4242",
-    brand: "Visa",
-    expiryMonth: "12",
-    expiryYear: "2025",
-    isDefault: true,
-    addedAt: "2024-01-15",
-  },
-  {
-    id: "2",
-    type: "upi",
-    provider: "paytm",
-    last4: "3210",
-    brand: "UPI",
-    isDefault: false,
-    addedAt: "2024-01-20",
-    upiId: "user@paytm",
-  },
-  {
-    id: "3",
-    type: "netbanking",
-    provider: "hdfc",
-    last4: "1234",
-    brand: "NetBanking",
-    isDefault: false,
-    addedAt: "2024-01-25",
-    bankName: "HDFC Bank",
-  },
-];
+
 
 export default function AccountPaymentMethodsPage() {
   const { user } = useAuth();
@@ -74,7 +42,7 @@ export default function AccountPaymentMethodsPage() {
         
         // Simulate API call with mock data
         setTimeout(() => {
-          setPaymentMethods(mockPaymentMethods);
+          setPaymentMethods([]);
           setLoading(false);
         }, 1000);
       } catch (err) {
@@ -327,36 +295,7 @@ export default function AccountPaymentMethodsPage() {
           </div>
         </div>
 
-        {/* Supported Payment Methods */}
-        <div className="bg-asc-canvas border border-asc-border rounded-lg p-4">
-          <h4 className="font-semibold text-asc-matte mb-2">💳 Supported Payment Methods</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="flex items-center gap-2 text-sm text-asc-charcoal">
-              <div className="w-8 h-8 bg-asc-border rounded flex items-center justify-center text-xs font-medium">VISA</div>
-              <span>Visa Cards</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-asc-charcoal">
-              <div className="w-8 h-8 bg-asc-border rounded flex items-center justify-center text-xs font-medium">MC</div>
-              <span>Mastercard</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-asc-charcoal">
-              <div className="w-8 h-8 bg-asc-border rounded flex items-center justify-center text-xs font-medium">UPI</div>
-              <span>UPI Apps</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-asc-charcoal">
-              <div className="w-8 h-8 bg-asc-border rounded flex items-center justify-center text-xs font-medium">NB</div>
-              <span>NetBanking</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-asc-charcoal">
-              <div className="w-8 h-8 bg-asc-border rounded flex items-center justify-center text-xs font-medium">RZP</div>
-              <span>Razorpay</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-asc-charcoal">
-              <div className="w-8 h-8 bg-asc-border rounded flex items-center justify-center text-xs font-medium">COD</div>
-              <span>Cash on Delivery</span>
-            </div>
-          </div>
-        </div>
+
       </div>
     </AccountSection>
   );

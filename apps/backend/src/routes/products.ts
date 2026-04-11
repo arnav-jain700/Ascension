@@ -1,9 +1,33 @@
 import express from "express";
 import { prisma } from "../index";
 import { asyncHandler } from "../middleware/errorHandler";
-import { AuthenticatedRequest, adminAuthMiddleware } from "../middleware/auth";
+import { AuthenticatedRequest, adminAuthMiddleware, authMiddleware } from "../middleware/auth";
 
 const router = express.Router();
+
+const mapProductForFrontend = (p: any, siblings: any[] = []) => ({
+  id: p.id,
+  name: p.name,
+  slug: p.slug,
+  description: p.description,
+  category: p.category?.name || p.categoryId || "Uncategorized",
+  basePrice: p.price || 0,
+  imageUrls: p.images?.map((img: any) => img.url) || [],
+  variants: p.variants?.map((v: any) => ({
+    id: v.id,
+    size: v.name || "",
+    color: p.color || "",
+    sku: v.sku,
+    stockQuantity: v.inventory || 0,
+    price: v.price || p.price
+  })) || [],
+  inStock: p.inventory ? p.inventory.availableQuantity > 0 : (p.variants?.some((v: any) => v.inventory > 0) || true),
+  color: p.color,
+  siblingColors: siblings.filter((s: any) => s.sku === p.sku && s.id !== p.id),
+  createdAt: p.createdAt,
+  reviews: p.reviews,
+});
+
 
 // Get all products (public endpoint)
 router.get("/", asyncHandler(async (req: express.Request, res: express.Response) => {
@@ -16,12 +40,26 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
     order = "desc",
     featured,
     status = "ACTIVE",
+    gender,
+    minPrice,
+    maxPrice,
   } = req.query;
 
   const skip = (Number(page) - 1) * Number(limit);
 
   // Build where clause
   const where: any = { status };
+
+  if (gender && gender !== "all") {
+    const genderTag = (gender as string).toLowerCase();
+    where.tags = { hasSome: [genderTag, "unisex"] };
+  }
+
+  if (minPrice || maxPrice) {
+    where.price = {};
+    if (minPrice) where.price.gte = Number(minPrice);
+    if (maxPrice) where.price.lte = Number(maxPrice);
+  }
 
   if (category) {
     where.category = { slug: category as string };
@@ -41,7 +79,11 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
 
   // Build order clause
   const orderBy: any = {};
-  orderBy[sort as string] = order;
+  if (sort === "newest") { orderBy["createdAt"] = "desc"; }
+  else if (sort === "oldest") { orderBy["createdAt"] = "asc"; }
+  else if (sort === "price-asc") { orderBy["price"] = "asc"; }
+  else if (sort === "price-desc") { orderBy["price"] = "desc"; }
+  else { orderBy[sort as string] = order; }
 
   const [products, total] = await Promise.all([
     prisma.product.findMany({
@@ -75,12 +117,27 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
     prisma.product.count({ where }),
   ]);
 
+  // Attach sibling products (same SKU)
+  const skuList = products.map((p: any) => p.sku).filter(Boolean);
+  const siblings = await prisma.product.findMany({
+    where: { sku: { in: skuList }, status: "ACTIVE" },
+    select: { 
+      id: true, 
+      slug: true, 
+      sku: true, 
+      color: true, 
+      images: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 1 } 
+    }
+  });
+
+  const productsWithSiblings = products.map((p: any) => mapProductForFrontend(p, siblings));
+
   const totalPages = Math.ceil(total / Number(limit));
 
   res.status(200).json({
     success: true,
     data: {
-      products,
+      products: productsWithSiblings,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -121,7 +178,7 @@ router.get("/:slug", asyncHandler(async (req: express.Request, res: express.Resp
         where: { isActive: true },
         include: {
           user: {
-            select: { id: true, firstName: true, lastName: true },
+            select: { id: true, name: true },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -137,9 +194,71 @@ router.get("/:slug", asyncHandler(async (req: express.Request, res: express.Resp
     });
   }
 
+  // Attach sibling products
+  const siblings = await prisma.product.findMany({
+    where: { sku: product.sku, status: "ACTIVE" },
+    select: { 
+      id: true, 
+      slug: true, 
+      sku: true, 
+      color: true, 
+      images: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 1 } 
+    }
+  });
+
+  const productWithSiblings = mapProductForFrontend(product, siblings);
+
   res.status(200).json({
     success: true,
-    data: product,
+    data: productWithSiblings,
+  });
+}));
+
+// Get product recommendations
+router.get("/:slug/recommendations", asyncHandler(async (req: express.Request, res: express.Response) => {
+  const { slug } = req.params;
+
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    select: { id: true, categoryId: true, tags: true },
+  });
+
+  if (!product) {
+    return res.status(404).json({
+      success: false,
+      error: "Not Found",
+      message: "Product not found",
+    });
+  }
+
+  const orConditions: any[] = [];
+  if (product.categoryId) {
+    orConditions.push({ categoryId: product.categoryId });
+  }
+  if (product.tags && product.tags.length > 0) {
+    orConditions.push({ tags: { hasSome: product.tags } });
+  }
+
+  const recommendations = await prisma.product.findMany({
+    where: {
+      id: { not: product.id },
+      status: "ACTIVE",
+      ...(orConditions.length > 0 ? { OR: orConditions } : {})
+    },
+    include: {
+      category: { select: { name: true, slug: true } },
+      images: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 1 },
+      variants: { where: { isActive: true } }
+    },
+    take: 3,
+    orderBy: { createdAt: "desc" },
+  });
+
+  const recommendationsData = recommendations.map((p: any) => mapProductForFrontend(p));
+
+  res.status(200).json({
+    success: true,
+    data: recommendationsData,
   });
 }));
 
@@ -186,6 +305,7 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
     name,
     description,
     sku,
+    color,
     price,
     comparePrice,
     cost,
@@ -197,6 +317,7 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
     featured = false,
     seoTitle,
     seoDescription,
+    images = [],
   } = req.body;
 
   // Validate required fields
@@ -208,18 +329,7 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
     });
   }
 
-  // Check if SKU already exists
-  const existingProduct = await prisma.product.findUnique({
-    where: { sku },
-  });
-
-  if (existingProduct) {
-    return res.status(400).json({
-      success: false,
-      error: "Validation Error",
-      message: "Product with this SKU already exists",
-    });
-  }
+  // SKU uniqueness has been relaxed to act as a style code
 
   // Generate slug from name
   let slug = name.toLowerCase()
@@ -240,6 +350,7 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
       slug: uniqueSlug,
       description,
       sku,
+      color,
       price: Number(price),
       comparePrice: comparePrice ? Number(comparePrice) : null,
       cost: cost ? Number(cost) : null,
@@ -251,6 +362,13 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
       featured,
       seoTitle,
       seoDescription,
+      images: images && images.length > 0 ? {
+        create: images.map((img: any, index: number) => ({
+          url: img.url || img,
+          sortOrder: index,
+          isActive: true
+        }))
+      } : undefined,
     },
     include: {
       category: true,
@@ -284,20 +402,7 @@ router.put("/:id", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRe
     });
   }
 
-  // If SKU is being updated, check for uniqueness
-  if (updateData.sku && updateData.sku !== product.sku) {
-    const existingProduct = await prisma.product.findUnique({
-      where: { sku: updateData.sku },
-    });
-
-    if (existingProduct) {
-      return res.status(400).json({
-        success: false,
-        error: "Validation Error",
-        message: "Product with this SKU already exists",
-      });
-    }
-  }
+  // Remove SKU uniqueness bounds
 
   // Update numeric fields
   if (updateData.price) updateData.price = Number(updateData.price);
@@ -413,6 +518,110 @@ router.post("/categories", adminAuthMiddleware, asyncHandler(async (req: Authent
     success: true,
     message: "Category created successfully",
     data: category,
+  });
+}));
+// Delete category (admin only)
+router.delete("/categories/:id", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  const { id } = req.params;
+
+  const category = await prisma.category.findUnique({
+    where: { id },
+  });
+
+  if (!category) {
+    return res.status(404).json({
+      success: false,
+      error: "Not Found",
+      message: "Category not found",
+    });
+  }
+
+  // Update associated products to remove category assignment
+  await prisma.product.updateMany({
+    where: { categoryId: id },
+    data: { categoryId: null },
+  });
+
+  await prisma.category.delete({
+    where: { id },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Category deleted successfully",
+  });
+}));
+
+// Submit a product review (authenticated)
+router.post("/:slug/reviews", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  const { slug } = req.params;
+  const { rating, title, content } = req.body;
+
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({
+      success: false,
+      error: "Validation",
+      message: "A rating between 1 and 5 is required"
+    });
+  }
+
+  const product = await prisma.product.findUnique({
+    where: { slug }
+  });
+
+  if (!product) {
+    return res.status(404).json({
+      success: false,
+      error: "Not Found",
+      message: "Product not found"
+    });
+  }
+
+  // Check if they actually bought it to mark as verified
+  const hasPurchased = await prisma.order.findFirst({
+    where: {
+      userId: req.user!.id,
+      status: "DELIVERED",
+      items: {
+        some: { productId: product.id }
+      }
+    }
+  });
+
+  if (!hasPurchased) {
+    return res.status(403).json({
+      success: false,
+      error: "Forbidden",
+      message: "Only verified buyers who have received this item can leave a review."
+    });
+  }
+
+  const review = await prisma.review.upsert({
+    where: {
+      productId_userId: {
+        productId: product.id,
+        userId: req.user!.id
+      }
+    },
+    update: {
+      rating: Number(rating),
+      title,
+      content,
+    },
+    create: {
+      productId: product.id,
+      userId: req.user!.id,
+      rating: Number(rating),
+      title,
+      content,
+      isVerified: true
+    }
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Review submitted successfully",
+    data: review
   });
 }));
 

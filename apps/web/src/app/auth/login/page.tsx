@@ -10,8 +10,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, updateUser } = useAuth(); // We might need to manually set user if 2FA passes but let's see. Wait, login from useAuth doesn't handle 2FA completion. We need to do it natively here.
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,13 +24,38 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const success = await login(email, password);
-      
-      if (success) {
-        // Redirect to account page or intended destination
-        router.push("/account");
+      if (requires2FA && tempToken) {
+        // Complete 2FA Login
+        const response = await fetch("/api/v1/auth/2fa/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tempToken, code: twoFactorCode })
+        });
+        
+        if (response.ok) {
+          const json = await response.json();
+          // We must update localStorage and context manually since `useAuth` login method doesn't do 2FA completion natively
+          localStorage.setItem("ascension-auth-token", json.data.sessionToken);
+          localStorage.setItem("ascension-user", JSON.stringify(json.data.user));
+          // Hard reload the page to initialize the context payload natively
+          window.location.href = "/account";
+        } else {
+          setError("Invalid authenticator code. Please try again.");
+        }
       } else {
-        setError("Invalid email or password. Please try again.");
+        // Standard Login Trigger
+        const result = await login(email, password);
+        
+        if (result.success) {
+          if (result.requires2FA) {
+            setRequires2FA(true);
+            setTempToken(result.tempToken || null);
+          } else {
+            router.push("/account");
+          }
+        } else {
+          setError("Invalid email or password. Please try again.");
+        }
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
@@ -53,64 +83,86 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-asc-matte mb-2">
-              Email Address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-asc-border rounded-md focus:outline-none focus:ring-2 focus:ring-asc-accent focus:border-transparent"
-              placeholder="Enter your email"
-            />
-          </div>
+          {!requires2FA ? (
+            <>
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-asc-matte mb-2">
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-asc-border rounded-md focus:outline-none focus:ring-2 focus:ring-asc-accent focus:border-transparent"
+                  placeholder="Enter your email"
+                />
+              </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-asc-matte mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-asc-border rounded-md focus:outline-none focus:ring-2 focus:ring-asc-accent focus:border-transparent"
-              placeholder="Enter your password"
-            />
-          </div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-asc-matte mb-2">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-asc-border rounded-md focus:outline-none focus:ring-2 focus:ring-asc-accent focus:border-transparent"
+                  placeholder="Enter your password"
+                />
+              </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember"
-                name="remember"
-                type="checkbox"
-                className="h-4 w-4 text-asc-accent border-asc-border rounded focus:ring-asc-accent"
-              />
-              <label htmlFor="remember" className="ml-2 block text-sm text-asc-charcoal">
-                Remember me
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember"
+                    name="remember"
+                    type="checkbox"
+                    className="h-4 w-4 text-asc-accent border-asc-border rounded focus:ring-asc-accent"
+                  />
+                  <label htmlFor="remember" className="ml-2 block text-sm text-asc-charcoal">
+                    Remember me
+                  </label>
+                </div>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm text-asc-accent hover:text-asc-matte transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div>
+              <p className="text-sm text-asc-charcoal mb-4">Your account is fortified with Two-Factor Authentication. Please enter the tracking code assigned to your device.</p>
+              <label htmlFor="twoFactorCode" className="block text-sm font-medium text-asc-matte mb-2">
+                Authenticator Code
               </label>
+              <input
+                id="twoFactorCode"
+                name="twoFactorCode"
+                type="text"
+                maxLength={6}
+                required
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, ''))}
+                className="w-full px-3 py-2 border border-asc-border rounded-md focus:outline-none focus:ring-2 focus:ring-asc-accent focus:border-transparent text-center tracking-widest text-lg font-mono"
+                placeholder="000000"
+              />
             </div>
-            <Link
-              href="/auth/forgot-password"
-              className="text-sm text-asc-accent hover:text-asc-matte transition-colors"
-            >
-              Forgot password?
-            </Link>
-          </div>
+          )}
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-asc-matte text-asc-canvas px-4 py-3 text-sm font-medium rounded-md transition-colors hover:bg-asc-charcoal disabled:bg-asc-border disabled:text-asc-charcoal disabled:cursor-not-allowed"
+            disabled={loading || (requires2FA && twoFactorCode.length !== 6)}
+            className="w-full bg-asc-matte text-asc-canvas px-4 py-3 text-sm font-medium rounded-md transition-colors hover:bg-asc-charcoal disabled:bg-asc-border disabled:text-asc-charcoal disabled:cursor-not-allowed flex justify-center items-center"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Authenticating..." : requires2FA ? "Verify Code" : "Sign In"}
           </button>
         </form>
       </div>

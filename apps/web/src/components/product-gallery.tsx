@@ -11,7 +11,9 @@ interface ProductGalleryProps {
 export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0);
 
-  if (images.length === 0) {
+  const safeImages = Array.isArray(images) ? images : [];
+
+  if (safeImages.length === 0) {
     return (
       <div className="aspect-square bg-asc-border rounded-lg flex items-center justify-center">
         <span className="text-asc-charcoal">No image available</span>
@@ -34,12 +36,14 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
       </div>
 
       {/* Thumbnail gallery */}
-      {images.length > 1 && (
+      {safeImages.length > 1 && (
         <div className="grid grid-cols-4 gap-2">
-          {images.map((image, index) => (
+          {safeImages.map((image, index) => (
             <button
               key={index}
               onClick={() => setSelectedImage(index)}
+              title={`View ${productName} image ${index + 1}`}
+              aria-label={`View ${productName} image ${index + 1}`}
               className={`relative aspect-square overflow-hidden rounded-md border-2 transition-all ${
                 selectedImage === index
                   ? "border-asc-accent"

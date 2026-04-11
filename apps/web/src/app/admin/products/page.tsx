@@ -12,8 +12,10 @@ import {
 interface Product {
   id: string;
   name: string;
+  slug: string;
   sku: string;
   price: number;
+  comparePrice?: number;
   status: string;
   category?: {
     name: string;
@@ -188,10 +190,16 @@ export default function AdminProducts() {
                   Product
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-asc-charcoal uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-asc-charcoal uppercase tracking-wider">
                   SKU
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-asc-charcoal uppercase tracking-wider">
                   Price
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-asc-charcoal uppercase tracking-wider">
+                  Discount
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-asc-charcoal uppercase tracking-wider">
                   Stock
@@ -226,17 +234,26 @@ export default function AdminProducts() {
                         <div className="text-sm font-medium text-asc-matte">
                           {product.name}
                         </div>
-                        <div className="text-sm text-asc-charcoal">
-                          {product.category?.name || "No category"}
-                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-asc-charcoal">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-asc-matte">
+                    {product.category?.name || <span className="text-asc-charcoal-muted font-normal italic">None</span>}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-asc-charcoal border-l border-r border-transparent">
                     {product.sku}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-asc-charcoal">
                     ₹{product.price.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {product.comparePrice && product.comparePrice > product.price ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                        {Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)}% OFF
+                      </span>
+                    ) : (
+                      <span className="text-asc-charcoal-muted">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-asc-charcoal">
                     {product.inventory?.quantity || 0}
@@ -259,13 +276,14 @@ export default function AdminProducts() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <a
-                        href={`/admin/products/${product.id}`}
+                        href={`/products/${product.slug}`}
+                        target="_blank"
                         className="text-asc-matte hover:text-asc-charcoal"
                       >
                         <EyeIcon className="h-4 w-4" />
                       </a>
                       <a
-                        href={`/admin/products/${product.id}/edit`}
+                        href={`/admin/products/${product.slug}/edit`}
                         className="text-asc-matte hover:text-asc-charcoal"
                       >
                         <PencilIcon className="h-4 w-4" />

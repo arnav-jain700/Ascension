@@ -1,9 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { SITE_BUSINESS_ADDRESS, SITE_CONTACT_EMAIL, SITE_MAP_EMBED_URL } from "@/lib/site";
 
 const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(SITE_BUSINESS_ADDRESS)}`;
 
 export default function ContactPage() {
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    // Simulate network request
+    setTimeout(() => {
+      setSubmitting(false);
+      setSuccess(true);
+    }, 1000);
+  };
+
   return (
     <div className="mx-auto max-w-4xl flex-1 px-4 py-16 sm:px-6 sm:py-24">
       <p className="text-sm text-asc-charcoal">
@@ -15,10 +31,7 @@ export default function ContactPage() {
       </p>
       <h1 className="mt-6 text-3xl font-semibold tracking-tight text-asc-matte sm:text-4xl">Contact us</h1>
       <p className="mt-4 max-w-2xl leading-relaxed text-asc-charcoal">
-        Visit us, email the team, or find us on the map. Set{" "}
-        <code className="rounded bg-asc-sand-muted px-1.5 py-0.5 text-xs">NEXT_PUBLIC_GOOGLE_MAPS_EMBED_URL</code>{" "}
-        in <code className="rounded bg-asc-sand-muted px-1.5 py-0.5 text-xs">.env</code> with the iframe{" "}
-        <span className="italic">src</span> from Google Maps → Share → Embed to show your exact pin.
+        Whether you have a question about our sizing, need help with a return, or just want to tell us how much you love your new fit, our support team is ready to deliver an exceptional experience. Fill out the form below or drop by our headquarters.
       </p>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-2">
@@ -70,6 +83,65 @@ export default function ContactPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Reach Out Form */}
+      <div className="mt-16 bg-white p-8 sm:p-10 border border-asc-border shadow-sm rounded-lg relative overflow-hidden">
+        <h2 className="text-xl font-semibold text-asc-matte mb-6">Reach out to us</h2>
+        
+        {success ? (
+          <div className="text-center py-12 bg-green-50 rounded-lg border border-green-200">
+            <h3 className="text-2xl font-semibold text-green-800 mb-2">Message Sent!</h3>
+            <p className="text-green-700 max-w-md mx-auto">Thank you for reaching out. A member of our support team will get back to you within 24-48 hours directly at your email.</p>
+            <button 
+              onClick={() => setSuccess(false)}
+              className="mt-6 font-medium text-green-800 hover:underline"
+            >
+              Send another message
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-asc-matte mb-1">First Name *</label>
+                <input id="firstName" type="text" required className="w-full border border-asc-border rounded-md px-3 py-2 outline-none focus:border-asc-matte transition-colors bg-white shadow-sm" />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-asc-matte mb-1">Last Name</label>
+                <input id="lastName" type="text" className="w-full border border-asc-border rounded-md px-3 py-2 outline-none focus:border-asc-matte transition-colors bg-white shadow-sm" />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-asc-matte mb-1">Email Address *</label>
+              <input id="email" type="email" required className="w-full border border-asc-border rounded-md px-3 py-2 outline-none focus:border-asc-matte transition-colors bg-white shadow-sm" />
+            </div>
+
+            <div>
+              <label htmlFor="orderNum" className="block text-sm font-medium text-asc-matte mb-1">Order Number (Optional)</label>
+              <input id="orderNum" type="text" placeholder="e.g. ASC-10394" className="w-full border border-asc-border rounded-md px-3 py-2 outline-none focus:border-asc-matte transition-colors bg-white shadow-sm" />
+              <p className="mt-1 text-xs text-asc-charcoal-muted">If you are inquiring about a previous purchase.</p>
+            </div>
+            
+            <div>
+              <label htmlFor="message" className="block text-sm font-medium text-asc-matte mb-1">Message *</label>
+              <textarea id="message" required rows={5} placeholder="How can we help you today?" className="w-full border border-asc-border rounded-md px-3 py-2 outline-none focus:border-asc-matte transition-colors bg-white shadow-sm"></textarea>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={submitting}
+              className="w-full sm:w-auto px-8 py-3 bg-asc-matte text-white font-semibold rounded-md hover:bg-asc-charcoal disabled:opacity-75 transition-colors flex items-center justify-center"
+            >
+              {submitting ? (
+                <div className="h-5 w-5 border-t-2 border-white rounded-full animate-spin"></div>
+              ) : (
+                "Submit Message"
+              )}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

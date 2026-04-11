@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { downloadInvoicePDF, InvoiceData } from "@/lib/pdf-invoice";
 import { calculateGST } from "@/lib/gst";
 
-export default function CheckoutSuccess() {
+function CheckoutSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orderData, setOrderData] = useState<any>(null);
@@ -192,5 +192,17 @@ export default function CheckoutSuccess() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutSuccess() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-asc-canvas">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-asc-matte"></div>
+      </div>
+    }>
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }

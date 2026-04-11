@@ -9,7 +9,7 @@ const router = express.Router();
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath = process.env.UPLOAD_DIR || "./uploads";
+    const uploadPath = ((process.env as any).UPLOAD_DIR as string) || "./uploads";
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
@@ -122,8 +122,9 @@ router.post("/product-images", upload.array("images", 5), asyncHandler(async (re
 
 // Delete file
 router.delete("/:filename", asyncHandler(async (req: express.Request, res: express.Response) => {
-  const { filename } = req.params;
-  const filePath = path.join(process.env.UPLOAD_DIR || "./uploads", filename);
+  const filename = req.params.filename as string;
+  const sanitizedFilename = path.basename(filename);
+  const filePath = path.join(((process.env as any).UPLOAD_DIR as string) || "./uploads", sanitizedFilename);
 
   // For now, just return success. In production, you'd want to:
   // 1. Check if file exists
@@ -139,8 +140,9 @@ router.delete("/:filename", asyncHandler(async (req: express.Request, res: expre
 
 // Get file info
 router.get("/:filename", asyncHandler(async (req: express.Request, res: express.Response) => {
-  const { filename } = req.params;
-  const filePath = path.join(process.env.UPLOAD_DIR || "./uploads", filename);
+  const filename = req.params.filename as string;
+  const sanitizedFilename = path.basename(filename);
+  const filePath = path.join(((process.env as any).UPLOAD_DIR as string) || "./uploads", sanitizedFilename);
 
   // In production, you'd check if file exists and return file info
   res.status(200).json({

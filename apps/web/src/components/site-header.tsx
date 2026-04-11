@@ -5,22 +5,62 @@ import { SITE_BLOG_URL } from "@/lib/site";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { CartDrawer } from "@/components/cart-drawer";
+import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
-const navLinkClass =
-  "whitespace-nowrap text-sm font-medium text-asc-charcoal transition-colors hover:text-asc-accent";
+const getNavLinkClass = (isTransparent: boolean) =>
+  `whitespace-nowrap text-sm font-medium transition-colors ${
+    isTransparent
+      ? "text-white/80 hover:text-white"
+      : "text-asc-charcoal hover:text-asc-accent"
+  }`;
 
 export function SiteHeader() {
   const { getTotalItems, setIsOpen } = useCart();
   const { user, logout } = useAuth();
   const totalItems = getTotalItems();
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!isHome) return;
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isHome]);
+
+  const isTransparent = isHome && !isScrolled;
+
+  const headerBgClass = isTransparent
+    ? "bg-transparent border-transparent"
+    : "bg-asc-canvas/95 backdrop-blur-sm border-asc-border";
+
+  const iconBorderClass = isTransparent
+    ? "border-white/30 text-white hover:border-white"
+    : "border-asc-border-strong text-asc-matte hover:border-asc-accent hover:text-asc-accent";
+    
+  const logoTextClass = isTransparent
+    ? "text-white hover:text-white/80"
+    : "text-asc-matte hover:text-asc-accent";
+    
+  const userTextClass = isTransparent
+    ? "text-white/90"
+    : "text-asc-charcoal";
+    
+  const signoutClass = isTransparent
+    ? "text-white/80 hover:text-white"
+    : "text-asc-charcoal hover:text-asc-matte";
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-asc-border bg-asc-canvas/95 backdrop-blur-sm">
+      <header className={`fixed top-0 left-0 right-0 z-50 border-b transition-colors duration-300 ${headerBgClass}`}>
         <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] grid-rows-[auto_auto] gap-x-4 gap-y-3 px-4 py-3 sm:px-6 lg:grid-cols-[auto_1fr_auto] lg:grid-rows-1 lg:items-center lg:gap-8 lg:py-4">
           <Link
             href="/"
-            className="col-start-1 row-start-1 text-lg font-semibold tracking-tight text-asc-matte transition-colors hover:text-asc-accent"
+            className={`col-start-1 row-start-1 text-lg font-semibold tracking-tight transition-colors ${logoTextClass}`}
             data-brand="ascension"
           >
             <span className="tracking-[0.2em]">ASCENSION</span>
@@ -29,7 +69,7 @@ export function SiteHeader() {
           <div className="col-start-2 row-start-1 flex items-center justify-end gap-2 lg:col-start-3 lg:row-start-1">
             <Link
               href="/wishlist"
-              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-asc-border-strong text-asc-matte transition-colors hover:border-asc-accent hover:text-asc-accent"
+              className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors ${iconBorderClass}`}
               aria-label="Wishlist"
               title="Wishlist"
             >
@@ -40,7 +80,7 @@ export function SiteHeader() {
             </Link>
             <button
               onClick={() => setIsOpen(true)}
-              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-asc-border-strong text-asc-matte transition-colors hover:border-asc-accent hover:text-asc-accent"
+              className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors ${iconBorderClass}`}
               aria-label="Shopping cart"
               title="Shopping cart"
             >
@@ -51,46 +91,34 @@ export function SiteHeader() {
                 </span>
               )}
             </button>
-            {user ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-asc-charcoal">
-                  Hi, {user.firstName}
-                </span>
-                <button
-                  onClick={logout}
-                  className="text-sm text-asc-charcoal hover:text-asc-matte transition-colors"
-                >
-                  Sign out
-                </button>
-              </div>
-            ) : (
-              <Link
-                href="/account"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-asc-border-strong text-asc-matte transition-colors hover:border-asc-accent hover:text-asc-accent"
-                aria-label="Account — profile, orders, and settings"
-                title="Account"
-              >
-                <ProfileIcon className="h-5 w-5" aria-hidden />
-              </Link>
-            )}
+            <Link
+              href="/account"
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors ${iconBorderClass}`}
+              aria-label="Account — profile, orders, and settings"
+              title="Account"
+            >
+              <ProfileIcon className="h-5 w-5" aria-hidden />
+            </Link>
           </div>
 
           <nav
-            className="col-span-2 row-start-2 flex gap-5 overflow-x-auto border-t border-asc-border pt-3 [-ms-overflow-style:none] [scrollbar-width:none] lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:border-0 lg:pt-0 lg:[&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:hidden"
+            className={`col-span-2 row-start-2 flex gap-5 overflow-x-auto border-t pt-3 [-ms-overflow-style:none] [scrollbar-width:none] lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:border-0 lg:pt-0 lg:[&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:hidden ${
+              isTransparent ? "border-white/10" : "border-asc-border"
+            }`}
             aria-label="Primary"
           >
-            <Link href="/products" className={navLinkClass}>
+            <Link href="/products" className={getNavLinkClass(isTransparent)}>
               Shop all
             </Link>
-            <Link href="/men" className={navLinkClass}>
+            <Link href="/men" className={getNavLinkClass(isTransparent)}>
               Men
             </Link>
-            <Link href="/women" className={navLinkClass}>
+            <Link href="/women" className={getNavLinkClass(isTransparent)}>
               Women
             </Link>
             <a
               href={SITE_BLOG_URL}
-              className={navLinkClass}
+              className={getNavLinkClass(isTransparent)}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -99,6 +127,7 @@ export function SiteHeader() {
           </nav>
         </div>
       </header>
+      {!isHome && <div className="h-[110px] lg:h-[72px]" />}
       <CartDrawer />
     </>
   );

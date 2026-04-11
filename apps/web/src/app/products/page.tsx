@@ -19,6 +19,10 @@ function ProductsPageContent() {
     category: searchParams.get("category") || "all",
     size: searchParams.get("size") || "",
     color: searchParams.get("color") || "",
+    gender: searchParams.get("gender") || "all",
+    priceRange: searchParams.get("priceRange") || "all",
+    minPrice: searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined,
+    maxPrice: searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined,
     sort: searchParams.get("sort") || "newest",
   });
 
@@ -57,8 +61,8 @@ function ProductsPageContent() {
     
     // Update URL params
     Object.entries(newFilters).forEach(([key, value]) => {
-      if (value && value !== "all") {
-        url.searchParams.set(key, value);
+      if (value !== undefined && value !== null && value !== "all" && value !== "") {
+        url.searchParams.set(key, value.toString());
       } else {
         url.searchParams.delete(key);
       }

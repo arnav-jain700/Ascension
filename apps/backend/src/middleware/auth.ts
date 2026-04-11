@@ -6,8 +6,7 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     email: string;
-    firstName: string;
-    lastName: string;
+    name: string;
     role?: string;
   };
 }
@@ -47,8 +46,7 @@ export const authMiddleware = async (
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        name: true,
         isActive: true,
         lastLoginAt: true,
       },
@@ -72,8 +70,7 @@ export const authMiddleware = async (
     req.user = {
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      name: user.name,
     };
 
     next();
@@ -128,8 +125,7 @@ export const optionalAuthMiddleware = async (
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        name: true,
         isActive: true,
       },
     });
@@ -138,8 +134,7 @@ export const optionalAuthMiddleware = async (
       req.user = {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        name: user.name,
       };
     }
 

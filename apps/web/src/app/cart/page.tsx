@@ -16,16 +16,13 @@ export default function CartPage() {
         </h1>
         
         <div className="text-center py-16">
-          <svg
-            className="w-16 h-16 mx-auto mb-4 text-asc-charcoal"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          >
-            <path d="M9 2L3 7v9a2 2 0 002 2h7a2 2 0 002-2V7l-6-5z" />
-            <path d="M9 22V12h6v10" />
-          </svg>
+          <Image
+            src="/empty-state.png"
+            alt="Empty Cart"
+            width={200}
+            height={200}
+            className="mx-auto mb-6 opacity-80"
+          />
           
           <h2 className="text-xl font-semibold text-asc-matte mb-2">
             Your cart is empty

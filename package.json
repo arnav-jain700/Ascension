@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "dev:full": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:full": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run db:studio\"",
     "dev:frontend": "npm run dev -w @ascension/web",
     "dev:backend": "npm run dev -w @ascension/backend",
     "dev:simple": "npm run dev:simple -w @ascension/backend",

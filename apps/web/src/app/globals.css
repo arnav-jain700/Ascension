@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
-/* Ascension palette: Crisp White, Matte Black, Charcoal, Sand Beige + SRS accents */
+/* Ascension palette: Ocean Sky & Deep Navy derived from cover image */
 :root {
-  --asc-canvas: #ffffff;
-  --asc-ink: #000000;
-  --asc-matte: #0a0a0a;
-  --asc-charcoal: #3d3d3d;
-  --asc-sand: #ede8e0;
-  --asc-sand-muted: #f5f2ec;
-  --asc-border: #efefef;
-  --asc-border-strong: #cccccc;
-  --asc-accent: #2196f3;
+  --asc-canvas: #f2f7fb;
+  --asc-ink: #0b1a2a;
+  --asc-matte: #15273b;
+  --asc-charcoal: #3c526d;
+  --asc-sand: #dceaf4;
+  --asc-sand-muted: #eaf1f8;
+  --asc-border: #d0e0ec;
+  --asc-border-strong: #a4bccc;
+  --asc-accent: #0ea5e9;
   --background: var(--asc-canvas);
   --foreground: var(--asc-ink);
 }
@@ -35,4 +35,20 @@ body {
   background: var(--asc-canvas);
   color: var(--asc-ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+@layer base {
+  /* Global premium interaction animations for all buttons and links */
+  button, a {
+    @apply transition-all duration-[400ms] ease-out;
+    will-change: transform, filter, background-color, box-shadow;
+  }
+
+  button:not(:disabled):hover, a:not([aria-disabled="true"]):hover {
+    @apply -translate-y-[2px] brightness-110 drop-shadow-md;
+  }
+
+  button:not(:disabled):active, a:not([aria-disabled="true"]):active {
+    @apply translate-y-[1px] brightness-90 drop-shadow-none duration-100;
+  }
 }

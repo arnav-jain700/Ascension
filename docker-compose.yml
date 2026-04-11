@@ -1,19 +1,17 @@
+version: '3.8'
 services:
-  postgres:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
+  db:
+    image: postgres:15-alpine
+    container_name: ascension_postgres
+    restart: always
     environment:
       POSTGRES_USER: ascension
-      POSTGRES_PASSWORD: ascension
-      POSTGRES_DB: ascension
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: ascension_db
+    ports:
+      - "5433:5432"
     volumes:
-      - ascension_pg:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ascension -d ascension"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
-  ascension_pg:
+  postgres_data:

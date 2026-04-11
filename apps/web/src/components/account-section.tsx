@@ -32,15 +32,18 @@ export function PrimaryButton({
   type = "button",
   children,
   disabled,
+  onClick,
 }: {
   type?: "button" | "submit";
   children: ReactNode;
   disabled?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
       type={type}
       disabled={disabled}
+      onClick={onClick}
       className="inline-flex h-11 items-center justify-center rounded-md bg-black px-5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {children}

@@ -26,34 +26,7 @@ interface Address {
   type: "shipping" | "billing";
 }
 
-const mockAddresses: Address[] = [
-  {
-    id: "1",
-    name: "Home",
-    line1: "123 Main Street, Apt 4B",
-    line2: "",
-    city: "Mumbai",
-    state: "Maharashtra",
-    postalCode: "400001",
-    country: "India",
-    phone: "9876543210",
-    isDefault: true,
-    type: "shipping",
-  },
-  {
-    id: "2",
-    name: "Office",
-    line1: "456 Business Park, Building 2",
-    line2: "10th Floor, Wing A",
-    city: "Bengaluru",
-    state: "Karnataka",
-    postalCode: "560001",
-    country: "India",
-    phone: "9876543210",
-    isDefault: false,
-    type: "shipping",
-  },
-];
+
 
 export default function AccountAddressesPage() {
   const { user } = useAuth();
@@ -80,18 +53,18 @@ export default function AccountAddressesPage() {
 
       try {
         setLoading(true);
-        // TODO: Implement actual API call
-        // const response = await fetch("/api/v1/addresses", {
-        //   headers: {
-        //     "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
-        //   },
-        // });
-        
-        // Simulate API call with mock data
-        setTimeout(() => {
-          setAddresses(mockAddresses);
-          setLoading(false);
-        }, 1000);
+        const response = await fetch("/api/v1/customers/addresses", {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAddresses(data.data || []);
+        } else {
+          throw new Error("Failed to load");
+        }
+        setLoading(false);
       } catch (err) {
         setError("Failed to load addresses. Please try again.");
         setLoading(false);
@@ -111,23 +84,27 @@ export default function AccountAddressesPage() {
     setError(null);
 
     try {
+      const method = editingAddress ? "PUT" : "POST";
+      const url = editingAddress 
+        ? `/api/v1/customers/addresses/${editingAddress.id}`
+        : "/api/v1/customers/addresses";
+
+      const token = localStorage.getItem("ascension-auth-token");
+      const resp = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(formData)
+      });
+      
+      if (!resp.ok) throw new Error("Failed to save");
+
+      const savedData = await resp.json();
+      
       if (editingAddress) {
-        // Update existing address
-        const updatedAddresses = addresses.map(addr =>
-          addr.id === editingAddress.id
-            ? { ...formData, id: editingAddress.id, isDefault: editingAddress.isDefault }
-            : addr
-        );
-        setAddresses(updatedAddresses);
+        setAddresses(addresses.map(a => a.id === editingAddress.id ? savedData.data : a));
         setEditingAddress(null);
       } else {
-        // Add new address
-        const newAddress: Address = {
-          ...formData,
-          id: Date.now().toString(),
-          isDefault: addresses.length === 0, // First address is default
-        };
-        setAddresses([...addresses, newAddress]);
+        setAddresses([savedData.data, ...addresses]);
       }
 
       // Reset form
@@ -168,14 +145,14 @@ export default function AccountAddressesPage() {
     if (!confirm("Are you sure you want to delete this address?")) return;
 
     try {
-      const updatedAddresses = addresses.filter(addr => addr.id !== addressId);
+      const token = localStorage.getItem("ascension-auth-token");
+      const resp = await fetch(`/api/v1/customers/addresses/${addressId}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!resp.ok) throw new Error("Failed to delete");
       
-      // If deleting default address, make another one default
-      if (addresses.find(addr => addr.id === addressId)?.isDefault && updatedAddresses.length > 0) {
-        updatedAddresses[0].isDefault = true;
-      }
-      
-      setAddresses(updatedAddresses);
+      setAddresses(addresses.filter(addr => addr.id !== addressId));
     } catch (err) {
       setError("Failed to delete address. Please try again.");
     }
@@ -183,10 +160,20 @@ export default function AccountAddressesPage() {
 
   const handleSetDefault = async (addressId: string) => {
     try {
-      const updatedAddresses = addresses.map(addr =>
-        addr.id === addressId ? { ...addr, isDefault: true } : { ...addr, isDefault: false }
-      );
-      setAddresses(updatedAddresses);
+      const token = localStorage.getItem("ascension-auth-token");
+      const address = addresses.find(a => a.id === addressId);
+      if (!address) return;
+      const resp = await fetch(`/api/v1/customers/addresses/${addressId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ isDefault: true })
+      });
+      if (!resp.ok) throw new Error("Failed");
+      
+      const updatedData = await resp.json();
+      setAddresses(addresses.map(a => 
+        a.id === addressId ? updatedData.data : { ...a, isDefault: false }
+      ));
     } catch (err) {
       setError("Failed to set default address. Please try again.");
     }

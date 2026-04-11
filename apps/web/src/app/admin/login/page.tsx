@@ -87,7 +87,7 @@ export default function AdminLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-asc-border-strong rounded-md shadow-sm placeholder-asc-charcoal-muted focus:outline-none focus:ring-2 focus:ring-asc-matte focus:border-asc-matte sm:text-sm"
-                placeholder="admin@ascension.com"
+                placeholder="Enter your email address"
               />
             </div>
 

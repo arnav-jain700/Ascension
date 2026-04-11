@@ -168,7 +168,7 @@ router.get("/dashboard", asyncHandler(async (req: express.Request, res: express.
 
   // Aggregate data
   const aggregatedData = analytics.reduce((acc: any, item) => {
-    const date = item.createdAt.toISOString().split('T')[0];
+    const date = item.createdAt.toISOString().split('T')[0] || 'unknown';
     
     if (!acc[date]) {
       acc[date] = {
@@ -180,7 +180,7 @@ router.get("/dashboard", asyncHandler(async (req: express.Request, res: express.
       };
     }
 
-    acc[date][item.event.toLowerCase().replace('_', '')] += 1;
+    acc[date][(item.event || '').toLowerCase().replace('_', '')] += 1;
     acc[date].uniqueVisitors.add(item.sessionId);
 
     return acc;
@@ -289,7 +289,7 @@ router.get("/conversion-funnel", asyncHandler(async (req: express.Request, res: 
       by: ["status"],
       where: {
         createdAt: { gte: startDate },
-        status: "COMPLETED",
+        status: "DELIVERED",
       },
       _count: { status: true },
     }),

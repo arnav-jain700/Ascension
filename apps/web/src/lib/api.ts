@@ -10,6 +10,8 @@ export interface Product {
   imageUrls: string[];
   variants: ProductVariant[];
   inStock: boolean;
+  color?: string;
+  siblingColors?: { id: string; slug: string; sku: string; color: string; images: Record<string, unknown>[] }[];
   createdAt: string;
 }
 
@@ -36,31 +38,44 @@ export interface ProductsResponse {
 
 export interface ProductFilters {
   category?: string;
+  search?: string;
   gender?: string;
   size?: string;
   color?: string;
+  minPrice?: number;
+  maxPrice?: number;
   sort?: "newest" | "oldest" | "price-asc" | "price-desc";
   page?: number;
   limit?: number;
 }
 
 class ApiClient {
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  public async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
-    const response = await fetch(url, {
+    const token = typeof window !== "undefined" ? localStorage.getItem("ascension-auth-token") : null;
+    
+    const fetchPromise = fetch(url, {
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         ...options?.headers,
       },
       ...options,
     });
 
+    const timeoutPromise = new Promise<Response>((_, reject) => 
+      setTimeout(() => reject(new Error("Request timed out. Please try again.")), 10000)
+    );
+
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+
     if (!response.ok) {
       throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
-    return response.json();
+    const jsonData = await response.json();
+    return jsonData?.success && jsonData?.data !== undefined ? jsonData.data : jsonData;
   }
 
   async getProducts(filters: ProductFilters = {}): Promise<ProductsResponse> {
@@ -68,6 +83,9 @@ class ApiClient {
     
     if (filters.category && filters.category !== "all") {
       params.append("category", filters.category);
+    }
+    if (filters.search) {
+      params.append("search", filters.search);
     }
     if (filters.gender && filters.gender !== "all") {
       params.append("gender", filters.gender);
@@ -96,6 +114,14 @@ class ApiClient {
 
   async getProduct(slug: string): Promise<Product> {
     return this.request<Product>(`/api/v1/products/${slug}`);
+  }
+
+  async getRecommendations(slug: string): Promise<Product[]> {
+    return this.request<Product[]>(`/api/v1/products/${slug}/recommendations`);
+  }
+
+  async getMe(): Promise<any> {
+    return this.request<any>("/api/v1/auth/profile");
   }
 }
 
