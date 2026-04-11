@@ -39,12 +39,15 @@ function CheckoutSuccessContent() {
         customerEmail: orderData.customer.email,
         customerPhone: orderData.customer.phone,
         billingAddress: orderData.billingAddress,
-        items: orderData.items.map((item: any) => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          total: item.price * item.quantity
-        })),
+        items: orderData.items.map((item: any) => {
+          const itemPrice = Number(item.price || item.variant?.price || 0);
+          return {
+            name: item.name,
+            quantity: item.quantity,
+            price: itemPrice,
+            total: itemPrice * item.quantity
+          };
+        }),
         subtotal: orderData.subtotal,
         cgst: gstCalculation.cgst,
         sgst: gstCalculation.sgst,
@@ -138,13 +141,13 @@ function CheckoutSuccessContent() {
                   <div className="flex-1">
                     <h4 className="font-medium text-asc-matte">{item.name}</h4>
                     <p className="text-sm text-asc-charcoal">
-                      {item.variant.size} • {item.variant.color} • Qty: {item.quantity}
+                      {item.variant?.size || "OS"} • {item.variant?.color || "Default"} • Qty: {item.quantity}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-asc-matte">₹{item.price.toLocaleString('en-IN')}</p>
+                    <p className="font-medium text-asc-matte">₹{Number(item.price || item.variant?.price || 0).toLocaleString('en-IN')}</p>
                     <p className="text-sm text-asc-charcoal">× {item.quantity}</p>
-                    <p className="font-semibold text-asc-matte">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
+                    <p className="font-semibold text-asc-matte">₹{(Number(item.price || item.variant?.price || 0) * item.quantity).toLocaleString('en-IN')}</p>
                   </div>
                 </div>
               ))}
@@ -188,6 +191,15 @@ function CheckoutSuccessContent() {
             className="flex-1 flex items-center justify-center px-6 py-3 bg-asc-matte text-white rounded-md hover:bg-asc-charcoal transition-colors"
           >
             Continue Shopping
+          </button>
+        </div>
+
+        <div className="mt-6 text-center">
+          <button 
+            onClick={() => router.push('/')} 
+            className="text-asc-charcoal hover:text-asc-matte font-medium underline underline-offset-4 transition-colors"
+          >
+            Return to Homepage
           </button>
         </div>
       </div>

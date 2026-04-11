@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Product } from "@/lib/api";
@@ -52,25 +55,70 @@ export function ProductGrid({ products, loading }: ProductGridProps) {
 }
 
 function ProductCard({ product }: { product: Product }) {
-  const imageUrl = product.imageUrls[0] || "/placeholder-product.jpg";
+  const safeImages = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls : ["/placeholder-product.jpg"];
+  const [currentIdx, setCurrentIdx] = useState(0);
   const price = product.basePrice;
   const inStock = product.inStock;
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIdx((prev) => (prev - 1 + safeImages.length) % safeImages.length);
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIdx((prev) => (prev + 1) % safeImages.length);
+  };
 
   return (
     <Link
       href={`/products/${product.slug}`}
       className="group block bg-asc-canvas border border-asc-border rounded-lg overflow-hidden transition-all hover:border-asc-accent hover:shadow-lg"
     >
-      <div className="relative aspect-square overflow-hidden">
+      <div className="relative aspect-square overflow-hidden group/slider">
         <Image
-          src={imageUrl}
+          src={safeImages[currentIdx]}
           alt={product.name}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
+
+        {/* Sliding Buttons */}
+        {safeImages.length > 1 && (
+          <>
+            <button
+              onClick={handlePrev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-white/80 hover:bg-white text-asc-matte rounded-full shadow-sm backdrop-blur-sm opacity-0 group-hover/slider:opacity-100 transition-all duration-200 z-10"
+              aria-label="Previous image"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={handleNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white/80 hover:bg-white text-asc-matte rounded-full shadow-sm backdrop-blur-sm opacity-0 group-hover/slider:opacity-100 transition-all duration-200 z-10"
+              aria-label="Next image"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            
+            {/* Minimal Dots Overlay */}
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 z-10 opacity-0 group-hover/slider:opacity-100 transition-all duration-200">
+               {safeImages.map((_, idx) => (
+                  <div key={idx} className={`w-1.5 h-1.5 rounded-full ${idx === currentIdx ? 'bg-asc-matte' : 'bg-asc-matte/30'}`} />
+               ))}
+            </div>
+          </>
+        )}
+
         {!inStock && (
-          <div className="absolute inset-0 bg-asc-canvas/80 flex items-center justify-center">
+          <div className="absolute inset-0 bg-asc-canvas/80 flex items-center justify-center pointer-events-none z-20">
             <span className="bg-asc-matte text-asc-canvas px-3 py-1 text-sm font-medium">
               Out of Stock
             </span>

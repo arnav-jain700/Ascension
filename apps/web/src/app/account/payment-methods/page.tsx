@@ -26,6 +26,7 @@ export default function AccountPaymentMethodsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [addMethodType, setAddMethodType] = useState<"card" | "upi">("card");
 
   useEffect(() => {
     const fetchPaymentMethods = async () => {
@@ -33,18 +34,31 @@ export default function AccountPaymentMethodsPage() {
 
       try {
         setLoading(true);
-        // TODO: Implement actual API call
-        // const response = await fetch("/api/v1/payment-methods", {
-        //   headers: {
-        //     "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
-        //   },
-        // });
+        const response = await fetch("/api/v1/auth/profile/payment-methods", {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
+          },
+        });
+        const data = await response.json();
         
-        // Simulate API call with mock data
-        setTimeout(() => {
-          setPaymentMethods([]);
-          setLoading(false);
-        }, 1000);
+        if (response.ok) {
+           setPaymentMethods(data.data.map((p: any) => ({
+              id: p.id,
+              type: p.type === "CARD" || p.type === "CREDIT_CARD" ? "card" : p.type === "UPI" ? "upi" : p.type === "NET_BANKING" ? "netbanking" : "cod",
+              provider: p.provider || "Saved",
+              last4: p.last4,
+              brand: p.brand || "Payment Method",
+              expiryMonth: p.expiryMonth,
+              expiryYear: p.expiryYear,
+              isDefault: p.isDefault,
+              addedAt: p.createdAt,
+              upiId: p.type === "UPI" ? p.token : undefined,
+              bankName: p.type === "NET_BANKING" ? p.token : undefined
+           })));
+        } else {
+           throw new Error();
+        }
+        setLoading(false);
       } catch (err) {
         setError("Failed to load payment methods. Please try again.");
         setLoading(false);
@@ -58,9 +72,13 @@ export default function AccountPaymentMethodsPage() {
     if (!confirm("Are you sure you want to remove this payment method?")) return;
 
     try {
-      const updatedMethods = paymentMethods.filter(method => method.id !== paymentMethodId);
+      const response = await fetch(`/api/v1/auth/profile/payment-methods/${paymentMethodId}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}` }
+      });
+      if (!response.ok) throw new Error();
       
-      // If deleting default method, make another one default
+      const updatedMethods = paymentMethods.filter(method => method.id !== paymentMethodId);
       if (paymentMethods.find(method => method.id === paymentMethodId)?.isDefault && updatedMethods.length > 0) {
         updatedMethods[0].isDefault = true;
       }
@@ -73,6 +91,12 @@ export default function AccountPaymentMethodsPage() {
 
   const handleSetDefault = async (paymentMethodId: string) => {
     try {
+      const response = await fetch(`/api/v1/auth/profile/payment-methods/${paymentMethodId}/default`, {
+        method: "PUT",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}` }
+      });
+      if (!response.ok) throw new Error();
+
       const updatedMethods = paymentMethods.map(method =>
         method.id === paymentMethodId ? { ...method, isDefault: true } : { ...method, isDefault: false }
       );
@@ -195,25 +219,78 @@ export default function AccountPaymentMethodsPage() {
     >
       <div className="space-y-6">
         {/* Add New Payment Method */}
-        <div className="border border-asc-border border-dashed rounded-md p-6 text-center">
-          <svg
-            className="w-12 h-12 mx-auto mb-4 text-asc-charcoal"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          >
-            <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-            <line x1="1" y1="10" x2="23" y2="10" />
-          </svg>
-          <h3 className="text-lg font-semibold text-asc-matte mb-2">Add Payment Method</h3>
-          <p className="text-asc-charcoal mb-4">
-            You can add payment methods during checkout. Your payment information is securely tokenized.
-          </p>
-          <SecondaryButton type="button" disabled>
-            Add Payment Method (via checkout)
-          </SecondaryButton>
-        </div>
+        {showAddForm ? (
+          <div className="border border-asc-border rounded-md p-6">
+            <h3 className="text-lg font-semibold text-asc-matte mb-4">Add Payment Details</h3>
+               <form onSubmit={async (e) => {
+                   e.preventDefault();
+                   const formData = new FormData(e.currentTarget);
+                   const type = formData.get("type");
+                   const payload = {
+                      type,
+                      provider: formData.get("provider") || "Saved",
+                      last4: formData.get("last4") || "****",
+                      brand: "Saved Method",
+                      upiId: type === "upi" ? formData.get("upiId") : undefined,
+                      bankName: type === "netbanking" ? formData.get("bankName") : undefined,
+                      isDefault: paymentMethods.length === 0
+                   };
+                   
+                   const response = await fetch("/api/v1/auth/profile/payment-methods", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}` },
+                      body: JSON.stringify(payload)
+                   });
+                   if (response.ok) {
+                      window.location.reload();
+                   } else {
+                      setError("Failed to add payment method");
+                   }
+               }}>
+                  <select name="type" value={addMethodType} onChange={(e) => setAddMethodType(e.target.value as any)} className="w-full mb-3 border border-asc-border text-sm p-3 rounded bg-asc-canvas focus:outline-none focus:ring-1" required>
+                     <option value="card">Credit/Debit Card</option>
+                     <option value="upi">UPI</option>
+                  </select>
+                  
+                  {addMethodType === "card" ? (
+                    <>
+                      <input name="provider" placeholder="Card Issuer (e.g. Visa, Mastercard, HDFC)" className="w-full mb-3 border border-asc-border text-sm p-3 rounded bg-asc-canvas focus:outline-none focus:ring-1" required />
+                      <input name="last4" placeholder="Last 4 Digits (Optional, e.g. 4242)" maxLength={4} className="w-full mb-4 border border-asc-border text-sm p-3 rounded bg-asc-canvas focus:outline-none focus:ring-1" />
+                    </>
+                  ) : (
+                    <>
+                      <input name="provider" placeholder="UPI App (e.g. PhonePe, Google Pay, Paytm)" className="w-full mb-3 border border-asc-border text-sm p-3 rounded bg-asc-canvas focus:outline-none focus:ring-1" required />
+                      <input name="upiId" placeholder="UPI ID / VPA (e.g. name@okhdfcbank)" className="w-full mb-4 border border-asc-border text-sm p-3 rounded bg-asc-canvas focus:outline-none focus:ring-1" required />
+                    </>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button type="submit" className="bg-asc-matte text-white px-6 py-2 rounded text-sm font-medium hover:bg-asc-charcoal transition-colors">Save Method</button>
+                    <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-2 rounded border border-asc-border text-sm font-medium hover:bg-asc-canvas transition-colors">Cancel</button>
+                  </div>
+               </form>
+          </div>
+        ) : (
+          <div className="border border-asc-border border-dashed rounded-md p-6 text-center">
+            <svg
+              className="w-12 h-12 mx-auto mb-4 text-asc-charcoal"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+            >
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+              <line x1="1" y1="10" x2="23" y2="10" />
+            </svg>
+            <h3 className="text-lg font-semibold text-asc-matte mb-2">Add Payment Method</h3>
+            <p className="text-asc-charcoal mb-4">
+              You can manually add a payment method, or save one seamlessly during checkout. Your payment information is securely tokenized.
+            </p>
+            <SecondaryButton type="button" onClick={() => setShowAddForm(true)}>
+              Add New Payment Method
+            </SecondaryButton>
+          </div>
+        )}
 
         {/* Payment Methods List */}
         {paymentMethods.length === 0 ? (
@@ -232,8 +309,8 @@ export default function AccountPaymentMethodsPage() {
             <p className="text-asc-charcoal mb-6">
               You haven&apos;t saved any payment methods yet. Add a payment method during checkout for faster future purchases.
             </p>
-            <SecondaryButton type="button" disabled>
-              Add Payment Method (via checkout)
+            <SecondaryButton type="button" onClick={() => setShowAddForm(true)}>
+              Add New Payment Method
             </SecondaryButton>
           </div>
         ) : (

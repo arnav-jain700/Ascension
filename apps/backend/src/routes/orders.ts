@@ -4,6 +4,14 @@ import { asyncHandler } from "../middleware/errorHandler";
 import { AuthenticatedRequest, authMiddleware } from "../middleware/auth";
 import { sendOrderConfirmationEmail } from "../services/emailService";
 
+const mapPaymentMethod = (type: string) => {
+  if (type === "card") return "CREDIT_CARD";
+  if (type === "upi") return "UPI";
+  if (type === "cod") return "CASH_ON_DELIVERY";
+  if (type === "netbanking") return "NET_BANKING";
+  return "CREDIT_CARD"; // fallback
+};
+
 const router = express.Router();
 
 // Get customer orders
@@ -187,7 +195,7 @@ router.post("/guest", asyncHandler(async (req: express.Request, res: express.Res
       payment: {
         create: {
           amount: Number(total),
-          method: paymentMethod.type,
+          method: mapPaymentMethod(paymentMethod.type),
           provider: paymentMethod.provider,
           status: "PENDING",
         },
@@ -274,7 +282,7 @@ router.post("/", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, 
           productId: item.productId,
           variantId: item.variantId,
           name: item.name,
-          sku: item.sku,
+          sku: item.sku || "N/A",
           price: Number(item.price),
           quantity: Number(item.quantity),
           total: Number(item.price * item.quantity),
@@ -285,7 +293,7 @@ router.post("/", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, 
         create: {
           userId: req.user!.id,
           amount: Number(total),
-          method: paymentMethod.type,
+          method: mapPaymentMethod(paymentMethod.type),
           provider: paymentMethod.provider,
           status: "PENDING",
         },

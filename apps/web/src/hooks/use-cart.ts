@@ -31,6 +31,7 @@ interface CartContextType {
   getTotalPrice: () => number;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  isHydrated: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -40,6 +41,7 @@ const CART_STORAGE_KEY = "ascension-cart";
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -51,6 +53,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error loading cart from localStorage:", error);
+    } finally {
+      setIsHydrated(true);
     }
   }, []);
 
@@ -130,6 +134,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     getTotalPrice,
     isOpen,
     setIsOpen,
+    isHydrated,
   };
 
   return React.createElement(

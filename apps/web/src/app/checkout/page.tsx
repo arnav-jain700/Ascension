@@ -37,7 +37,7 @@ interface PaymentMethod {
 export default function CheckoutPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { items, getTotalPrice, clearCart } = useCart();
+  const { items, getTotalPrice, clearCart, isHydrated } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -87,6 +87,9 @@ export default function CheckoutPage() {
   const total = Math.max(0, subtotal - discountAmount + shipping + tax);
 
   useEffect(() => {
+    if (!isHydrated) return; // Wait for localStorage sync to complete
+    if (success) return; // Prevent redirecting back to cart if the checkout process has successfully fired!
+
     if (items.length === 0) {
       router.push("/cart");
       return;
@@ -153,7 +156,7 @@ export default function CheckoutPage() {
     };
     
     loadData();
-  }, [user, items, router]);
+  }, [user, items, router, isHydrated, success]);
 
   const handleAddressSelect = (address: Address) => {
     setSelectedAddress(address);
@@ -275,12 +278,27 @@ export default function CheckoutPage() {
 
       setProcessingPayment(true);
       
+      // Store complete formatted payload for use in Success page invoice generation instantly
+      const finalOrderData = {
+         orderNumber: resData.data?.orderNumber || `ASC-${Date.now()}`,
+         customer: { name: guestName || user?.name || "Customer", email: guestEmail || user?.email || "", phone: guestPhone || user?.phone || "" },
+         shippingAddress: orderData.shippingAddress,
+         billingAddress: orderData.billingAddress,
+         paymentMethod: orderData.paymentMethod?.type || "Card",
+         items: items, // Pass the fully hydrated cart items directly so the Success UI can read .variant.size
+         subtotal: orderData.subtotal,
+         shipping: orderData.shippingCost,
+         total: orderData.total,
+         createdAt: resData.data?.createdAt || new Date().toISOString()
+      };
+      localStorage.setItem(`order_${finalOrderData.orderNumber}`, JSON.stringify(finalOrderData));
+
       setTimeout(() => {
         setSuccess(true);
         clearCart();
         setLoading(false);
         setProcessingPayment(false);
-        router.push(`/checkout/success?order=${resData.data?.orderNumber || Date.now()}`);
+        router.push(`/checkout/success?order=${finalOrderData.orderNumber}`);
       }, 1500);
 
     } catch (err) {

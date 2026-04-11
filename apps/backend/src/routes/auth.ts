@@ -526,6 +526,107 @@ router.put("/profile", authMiddleware, asyncHandler(async (req: AuthenticatedReq
   });
 }));
 
+// --- PAYMENT METHODS ---
+
+router.get("/profile/payment-methods", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  const methods = await prisma.paymentMethod.findMany({
+    where: { userId: req.user!.id, isActive: true },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  res.status(200).json({ success: true, data: methods });
+}));
+
+router.post("/profile/payment-methods", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  const { type, provider, last4, brand, expiryMonth, expiryYear, isDefault, upiId, bankName } = req.body;
+
+  if (!type || !provider) {
+    return res.status(400).json({ success: false, message: "Type and Provider are required" });
+  }
+
+  // Handle defaults logically
+  if (isDefault) {
+    await prisma.paymentMethod.updateMany({
+      where: { userId: req.user!.id, isDefault: true },
+      data: { isDefault: false }
+    });
+  }
+
+  // If no methods exist yet, automatically make it default
+  const existingCount = await prisma.paymentMethod.count({ where: { userId: req.user!.id, isActive: true } });
+  const shouldBeDefault = isDefault || existingCount === 0;
+
+  let methodEnum = "CARD";
+  if (type === "upi") methodEnum = "UPI";
+  else if (type === "netbanking") methodEnum = "NET_BANKING";
+  else if (type === "cod") methodEnum = "COD";
+
+  const newMethod = await prisma.paymentMethod.create({
+    data: {
+      userId: req.user!.id,
+      type: methodEnum as any,
+      provider,
+      last4,
+      brand,
+      expiryMonth,
+      expiryYear,
+      isDefault: shouldBeDefault,
+      token: upiId || bankName || null, // abusing token field strictly to store upiId/bankName natively since schema doesn't have it natively
+    }
+  });
+
+  res.status(201).json({ success: true, data: newMethod });
+}));
+
+router.delete("/profile/payment-methods/:id", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  const method = await prisma.paymentMethod.findFirst({
+    where: { id: req.params.id, userId: req.user!.id }
+  });
+
+  if (!method) return res.status(404).json({ success: false, message: "Not found" });
+
+  await prisma.paymentMethod.delete({ where: { id: method.id } });
+
+  // Reassign default logic natively
+  if (method.isDefault) {
+    const nextMethod = await prisma.paymentMethod.findFirst({
+      where: { userId: req.user!.id },
+      orderBy: { createdAt: 'desc' }
+    });
+    if (nextMethod) {
+      await prisma.paymentMethod.update({
+        where: { id: nextMethod.id },
+        data: { isDefault: true }
+      });
+    }
+  }
+
+  res.status(200).json({ success: true, message: "Deleted successfully" });
+}));
+
+router.put("/profile/payment-methods/:id/default", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  const method = await prisma.paymentMethod.findFirst({
+    where: { id: req.params.id, userId: req.user!.id }
+  });
+
+  if (!method) return res.status(404).json({ success: false, message: "Not found" });
+
+  await prisma.$transaction([
+    prisma.paymentMethod.updateMany({
+      where: { userId: req.user!.id, isDefault: true },
+      data: { isDefault: false }
+    }),
+    prisma.paymentMethod.update({
+      where: { id: method.id },
+      data: { isDefault: true }
+    })
+  ]);
+
+  res.status(200).json({ success: true, message: "Default updated" });
+}));
+
+// --- PASSWORD ---
+
 // Change password
 router.put("/change-password", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
   const { currentPassword, newPassword } = req.body;
