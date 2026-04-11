@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
+import { calculateGST, getTaxBreakdown, formatCurrency } from "@/lib/gst";
+import { GSTSummary } from "@/components/gst-summary";
 
 interface Address {
   id: string;
@@ -154,11 +156,18 @@ export default function CheckoutPage() {
     try {
       // Create order
       const orderData = {
+        orderNumber: `ORD-${Date.now()}`,
+        customer: {
+          name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Guest User',
+          email: user?.email || 'guest@example.com',
+          phone: selectedAddress.phone
+        },
         items: items.map(item => ({
           productId: item.productId,
           variantId: item.variantId,
           quantity: item.quantity,
           price: item.variant.price,
+          name: item.name
         })),
         shippingAddress: selectedAddress,
         paymentMethod: selectedPayment,
@@ -167,7 +176,11 @@ export default function CheckoutPage() {
         tax,
         total,
         notes: orderNotes,
+        createdAt: new Date().toISOString()
       };
+
+      // Save order data for invoice generation
+      localStorage.setItem(`order_${orderData.orderNumber}`, JSON.stringify(orderData));
 
       // TODO: Implement actual API call
       // const response = await fetch("/api/v1/orders", {
@@ -189,6 +202,8 @@ export default function CheckoutPage() {
           clearCart();
           setLoading(false);
           setProcessingPayment(false);
+          // Redirect to success page with order number
+          router.push(`/checkout/success?order=${orderData.orderNumber}`);
         }, 2000);
       } else {
         // Card/UPI payment processing
@@ -197,6 +212,8 @@ export default function CheckoutPage() {
           clearCart();
           setLoading(false);
           setProcessingPayment(false);
+          // Redirect to success page with order number
+          router.push(`/checkout/success?order=${orderData.orderNumber}`);
         }, 3000);
       }
 
@@ -518,29 +535,12 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            {/* Pricing */}
-            <div className="space-y-2 border-t border-asc-border pt-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-asc-charcoal">Subtotal</span>
-                <span className="font-medium text-asc-matte">₹{subtotal.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-asc-charcoal">Shipping</span>
-                <span className="font-medium text-asc-matte">
-                  {shipping === 0 ? "FREE" : `₹${shipping.toLocaleString('en-IN')}`}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-asc-charcoal">Tax (18% GST)</span>
-                <span className="font-medium text-asc-matte">₹{tax.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="border-t border-asc-border pt-2">
-                <div className="flex justify-between">
-                  <span className="font-semibold text-asc-matte">Total</span>
-                  <span className="font-bold text-lg text-asc-matte">₹{total.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-            </div>
+            {/* GST Calculation */}
+            <GSTSummary 
+              subtotal={subtotal}
+              customerState={selectedAddress?.state || 'TS'}
+              category="clothing"
+            />
 
             {/* Action Buttons */}
             <div className="space-y-3 mt-6">
