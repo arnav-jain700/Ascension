@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon, PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { API_BASE_URL } from "@/lib/api";
 
 export default function NewProduct() {
   const router = useRouter();
@@ -36,7 +35,7 @@ export default function NewProduct() {
     // Fetch categories for the select dropdown
     const fetchCategories = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/products/categories/list`);
+        const response = await fetch("/api/v1/products/categories/list");
         if (response.ok) {
           const data = await response.json();
           setCategories(data.data || []);
@@ -53,7 +52,7 @@ export default function NewProduct() {
     setCreatingCategory(true);
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`${API_BASE_URL}/api/v1/products/categories`, {
+      const res = await fetch("/api/v1/products/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: newCategoryName })
@@ -108,7 +107,7 @@ export default function NewProduct() {
           formData.append("images", file);
         });
 
-        const uploadRes = await fetch(`${API_BASE_URL}/api/v1/upload/product-images`, {
+        const uploadRes = await fetch("/api/v1/upload/product-images", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -137,7 +136,7 @@ export default function NewProduct() {
         sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
       };
 
-      const productRes = await fetch(`${API_BASE_URL}/api/v1/products`, {
+      const productRes = await fetch("/api/v1/products", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

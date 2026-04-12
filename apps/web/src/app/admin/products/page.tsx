@@ -8,7 +8,6 @@ import {
   TrashIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
-import { API_BASE_URL } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -58,7 +57,7 @@ export default function AdminProducts() {
         ...(status !== "all" && { status }),
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/products?${params}`, {
+      const response = await fetch(`/api/v1/admin/products?${params}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -92,7 +91,7 @@ export default function AdminProducts() {
 
     try {
       const token = localStorage.getItem("admin_token");
-      const response = await fetch(`${API_BASE_URL}/api/v1/products/${productId}`, {
+      const response = await fetch(`/api/v1/products/${productId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

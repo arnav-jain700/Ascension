@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { TagIcon, ExclamationTriangleIcon, CheckCircleIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { API_BASE_URL } from "@/lib/api";
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -17,7 +16,7 @@ export default function AdminCategories() {
   const fetchCategories = async (showSpinner = true) => {
     try {
       if (showSpinner) setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/v1/products/categories/list`);
+      const response = await fetch("/api/v1/products/categories/list");
       if (response.ok) {
         const data = await response.json();
         setCategories(data.data || []);
@@ -46,7 +45,7 @@ export default function AdminCategories() {
 
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`${API_BASE_URL}/api/v1/products/categories`, {
+      const res = await fetch("/api/v1/products/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: newCategoryName })
@@ -85,7 +84,7 @@ export default function AdminCategories() {
     
     try {
       const token = localStorage.getItem("admin_token");
-      const response = await fetch(`${API_BASE_URL}/api/v1/products/categories/${id}`, {
+      const response = await fetch(`/api/v1/products/categories/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });

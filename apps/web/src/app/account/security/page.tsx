@@ -35,7 +35,7 @@ interface ActiveSession {
 
 
 export default function AccountSecurityPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const [settings, setSettings] = useState<SecuritySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +52,9 @@ export default function AccountSecurityPage() {
 
   useEffect(() => {
     const fetchSecuritySettings = async () => {
+      // If still loading auth context, do nothing yet
+      if (authLoading) return;
+      
       if (!user) {
         setLoading(false);
         return;
@@ -232,6 +235,19 @@ export default function AccountSecurityPage() {
       setError("Failed to delete account.");
     }
   };
+
+  if (authLoading) {
+    return (
+      <AccountSection
+        title="Security settings"
+        description="Manage your account security and privacy settings."
+      >
+        <div className="text-center py-8">
+          <p className="text-asc-charcoal">Loading profile...</p>
+        </div>
+      </AccountSection>
+    );
+  }
 
   if (!user) {
     return (
