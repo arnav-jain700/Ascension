@@ -10,7 +10,7 @@ const mapProductForFrontend = (p: any, siblings: any[] = []) => ({
   name: p.name,
   slug: p.slug,
   description: p.description,
-  category: p.category?.name || p.categoryId || "Uncategorized",
+  category: "Uncategorized",
   basePrice: p.price || 0,
   imageUrls: p.images?.map((img: any) => img.url) || [],
   variants: p.variants?.map((v: any) => ({
@@ -61,9 +61,7 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
     if (maxPrice) where.price.lte = Number(maxPrice);
   }
 
-  if (category) {
-    where.category = { slug: category as string };
-  }
+
 
   if (search) {
     where.OR = [
@@ -89,9 +87,6 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
     prisma.product.findMany({
       where,
       include: {
-        category: {
-          select: { id: true, name: true, slug: true },
-        },
         variants: {
           where: { isActive: true },
           include: {
@@ -150,104 +145,7 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
   });
 }));
 
-// Get categories
-router.get("/categories/list", asyncHandler(async (req: express.Request, res: express.Response) => {
-  const categories = await prisma.category.findMany({
-    where: { isActive: true },
-    include: {
-      parent: {
-        select: { id: true, name: true },
-      },
-      children: {
-        select: { id: true, name: true, slug: true },
-      },
-      _count: {
-        select: { products: true },
-      },
-    },
-    orderBy: { sortOrder: "asc" },
-  });
 
-  res.status(200).json({
-    success: true,
-    data: categories,
-  });
-}));
-
-// Create category (admin only)
-router.post("/categories", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
-  const { name, description, parentId, image, sortOrder = 0 } = req.body;
-
-  if (!name) {
-    return res.status(400).json({
-      success: false,
-      error: "Validation Error",
-      message: "Category name is required",
-    });
-  }
-
-  // Generate slug
-  let slug = name.toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  // Ensure unique slug
-  let uniqueSlug = slug;
-  let counter = 1;
-  while (await prisma.category.findUnique({ where: { slug: uniqueSlug } })) {
-    uniqueSlug = `${slug}-${counter}`;
-    counter++;
-  }
-
-  const category = await prisma.category.create({
-    data: {
-      name,
-      slug: uniqueSlug,
-      description,
-      parentId: parentId || null,
-      image,
-      sortOrder,
-    },
-  });
-
-  res.status(201).json({
-    success: true,
-    message: "Category created successfully",
-    data: category,
-  });
-}));
-
-// Delete category (admin only)
-router.delete("/categories/:id", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
-  const { id } = req.params;
-
-  const category = await prisma.category.findUnique({
-    where: { id },
-  });
-
-  if (!category) {
-    return res.status(404).json({
-      success: false,
-      error: "Not Found",
-      message: "Category not found",
-    });
-  }
-
-  // Update associated products to remove category assignment
-  await prisma.product.updateMany({
-    where: { categoryId: id },
-    data: { categoryId: null },
-  });
-
-  await prisma.category.delete({
-    where: { id },
-  });
-
-  res.status(200).json({
-    success: true,
-    message: "Category deleted successfully",
-  });
-}));
 
 // Get single product by slug (public endpoint)
 router.get("/:slug", asyncHandler(async (req: express.Request, res: express.Response) => {
@@ -256,9 +154,6 @@ router.get("/:slug", asyncHandler(async (req: express.Request, res: express.Resp
   const product = await prisma.product.findUnique({
     where: { slug },
     include: {
-      category: {
-        select: { id: true, name: true, slug: true },
-      },
       variants: {
         where: { isActive: true },
         include: {
@@ -319,7 +214,7 @@ router.get("/:slug/recommendations", asyncHandler(async (req: express.Request, r
 
   const product = await prisma.product.findUnique({
     where: { slug },
-    select: { id: true, categoryId: true, tags: true },
+    select: { id: true, tags: true },
   });
 
   if (!product) {
@@ -331,9 +226,7 @@ router.get("/:slug/recommendations", asyncHandler(async (req: express.Request, r
   }
 
   const orConditions: any[] = [];
-  if (product.categoryId) {
-    orConditions.push({ categoryId: product.categoryId });
-  }
+
   if (product.tags && product.tags.length > 0) {
     orConditions.push({ tags: { hasSome: product.tags } });
   }
@@ -345,7 +238,6 @@ router.get("/:slug/recommendations", asyncHandler(async (req: express.Request, r
       ...(orConditions.length > 0 ? { OR: orConditions } : {})
     },
     include: {
-      category: { select: { name: true, slug: true } },
       images: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 1 },
       variants: { where: { isActive: true } }
     },
@@ -411,7 +303,6 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
     weight,
     dimensions,
     tags,
-    categoryId,
     status = "ACTIVE",
     featured = false,
     seoTitle,
@@ -457,7 +348,6 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
       weight: weight ? Number(weight) : null,
       dimensions,
       tags: tags || [],
-      categoryId: categoryId || null,
       status,
       featured,
       seoTitle,
@@ -522,7 +412,6 @@ router.put("/:id", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRe
     where: { id },
     data: updateData,
     include: {
-      category: true,
       variants: true,
       images: true,
       inventory: true,

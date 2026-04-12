@@ -14,7 +14,6 @@ export default function EditProduct({ params }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [categories, setCategories] = useState<any[]>([]);
 
   // Product ID state
   const [productId, setProductId] = useState("");
@@ -27,47 +26,30 @@ export default function EditProduct({ params }: Props) {
   const [comparePrice, setComparePrice] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("ACTIVE");
-  const [categoryId, setCategoryId] = useState("");
   const [genderTag, setGenderTag] = useState("unisex");
 
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [creatingCategory, setCreatingCategory] = useState(false);
 
   // Image states
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   useEffect(() => {
-    // Fetch categories for the select dropdown
     const fetchInitialData = async () => {
       try {
-        const response = await fetch("/api/v1/products/categories/list");
-        if (response.ok) {
-          const data = await response.json();
-          setCategories(data.data || []);
-          
-          // Next fetch product
-          const prodRes = await fetch("/api/v1/products/" + slug);
-          if (prodRes.ok) {
-             const prodData = await prodRes.json();
-             const p = prodData.data;
-             setProductId(p.id);
-             setName(p.name || "");
-             setSku(p.sku || "");
-             setColor(p.color || "");
-             setPrice(p.basePrice?.toString() || "");
-             setComparePrice(p.comparePrice?.toString() || "");
-             setDescription(p.description || "");
-             setStatus(p.status || "ACTIVE");
-             setGenderTag(p.tags?.[0] || "unisex");
-             if (p.imageUrls) setPreviewUrls(p.imageUrls);
-             
-             if (p.category) {
-               const catMatch = data.data.find((c: any) => c.name === p.category);
-               if (catMatch) setCategoryId(catMatch.id);
-             }
-          }
+        const prodRes = await fetch("/api/v1/products/" + slug);
+        if (prodRes.ok) {
+           const prodData = await prodRes.json();
+           const p = prodData.data;
+           setProductId(p.id);
+           setName(p.name || "");
+           setSku(p.sku || "");
+           setColor(p.color || "");
+           setPrice(p.basePrice?.toString() || "");
+           setComparePrice(p.comparePrice?.toString() || "");
+           setDescription(p.description || "");
+           setStatus(p.status || "ACTIVE");
+           setGenderTag(p.tags?.[0] || "unisex");
+           if (p.imageUrls) setPreviewUrls(p.imageUrls);
         }
       } catch (err) {
         console.error("Failed to fetch initial data", err);
@@ -75,33 +57,6 @@ export default function EditProduct({ params }: Props) {
     };
     fetchInitialData();
   }, [slug]);
-
-  const handleCreateCategory = async () => {
-    if (!newCategoryName.trim()) return;
-    setCreatingCategory(true);
-    try {
-      const token = localStorage.getItem("admin_token");
-      const res = await fetch("/api/v1/products/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newCategoryName })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setCategories((prev) => [...prev, data.data]);
-        setCategoryId(data.data.id);
-        setShowCategoryModal(false);
-        setNewCategoryName("");
-      } else {
-        alert(data.message || "Failed to create category");
-      }
-    } catch (err) {
-      alert("Failed to create category");
-    } finally {
-      setCreatingCategory(false);
-    }
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
@@ -158,7 +113,6 @@ export default function EditProduct({ params }: Props) {
         comparePrice: comparePrice ? Number(comparePrice) : undefined,
         description,
         status,
-        categoryId: categoryId || undefined,
         tags: [genderTag],
       };
 
@@ -335,36 +289,6 @@ export default function EditProduct({ params }: Props) {
             </div>
           </div>
 
-          <div className="sm:col-span-3">
-            <div className="flex items-center justify-between">
-              <label htmlFor="category" className="block text-sm font-medium text-asc-matte">
-                Category
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowCategoryModal(true)}
-                className="text-xs font-semibold text-asc-accent hover:underline"
-              >
-                + New Category
-              </button>
-            </div>
-            <div className="mt-1">
-              <select
-                id="category"
-                name="category"
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="block w-full px-3 py-2 border border-asc-border-strong bg-white rounded-md shadow-sm focus:ring-asc-matte focus:border-asc-matte sm:text-sm"
-              >
-                <option value="">Select a category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
 
           <div className="sm:col-span-3">
             <label htmlFor="genderTag" className="block text-sm font-medium text-asc-matte">
@@ -489,51 +413,6 @@ export default function EditProduct({ params }: Props) {
         </div>
       </form>
 
-      {/* New Category Modal */}
-      {showCategoryModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowCategoryModal(false)}></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div>
-                  <h3 className="text-lg leading-6 font-medium text-asc-matte mb-4" id="modal-title">
-                    Create New Category
-                  </h3>
-                  <div className="mt-2">
-                    <input
-                      type="text"
-                      autoFocus
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="e.g. Hoodies, Men's Bottoms"
-                      className="block w-full px-3 py-2 border border-asc-border-strong rounded-md shadow-sm focus:ring-asc-matte focus:border-asc-matte sm:text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="bg-asc-sand-muted px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-asc-border">
-                <button
-                  type="button"
-                  onClick={handleCreateCategory}
-                  disabled={creatingCategory || !newCategoryName.trim()}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-asc-matte text-base font-medium text-white hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-asc-matte sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-                >
-                  {creatingCategory ? "Creating..." : "Create Category"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCategoryModal(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-asc-border-strong shadow-sm px-4 py-2 bg-white text-base font-medium text-asc-charcoal hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-asc-matte sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

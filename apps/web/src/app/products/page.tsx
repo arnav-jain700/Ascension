@@ -14,9 +14,7 @@ function ProductsPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize filters from URL params
   const [filters, setFilters] = useState({
-    category: searchParams.get("category") || "all",
     size: searchParams.get("size") || "",
     color: searchParams.get("color") || "",
     gender: searchParams.get("gender") || "all",

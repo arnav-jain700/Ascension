@@ -17,9 +17,7 @@ interface Product {
   price: number;
   comparePrice?: number;
   status: string;
-  category?: {
-    name: string;
-  };
+
   inventory?: {
     quantity: number;
   };
@@ -189,9 +187,7 @@ export default function AdminProducts() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-asc-charcoal uppercase tracking-wider">
                   Product
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-asc-charcoal uppercase tracking-wider">
-                  Category
-                </th>
+
                 <th className="px-6 py-3 text-left text-xs font-medium text-asc-charcoal uppercase tracking-wider">
                   SKU
                 </th>
@@ -237,9 +233,7 @@ export default function AdminProducts() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-asc-matte">
-                    {product.category?.name || <span className="text-asc-charcoal-muted font-normal italic">None</span>}
-                  </td>
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-asc-charcoal border-l border-r border-transparent">
                     {product.sku}
                   </td>

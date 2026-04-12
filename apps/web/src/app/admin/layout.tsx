@@ -75,7 +75,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       title: "Catalog",
       items: [
         { name: "Products", href: "/admin/products", icon: ShoppingBagIcon },
-        { name: "Categories", href: "/admin/categories", icon: TagIcon },
       ]
     },
     {

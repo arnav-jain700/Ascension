@@ -19,7 +19,6 @@ function WomenCollectionPageContent() {
 
   // Initialize filters from URL params
   const [filters, setFilters] = useState({
-    category: searchParams.get("category") || "all",
     size: searchParams.get("size") || "",
     color: searchParams.get("color") || "",
     gender: "women", // Force gender to be women for this page

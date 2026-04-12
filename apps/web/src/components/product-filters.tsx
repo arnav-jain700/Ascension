@@ -4,7 +4,6 @@ import { useState } from "react";
 
 interface ProductFiltersProps {
   filters: {
-    category: string;
     size: string;
     color: string;
     sort: string;
@@ -23,13 +22,6 @@ const genders = [
   { value: "unisex", label: "Unisex" },
 ];
 
-
-
-const categories = [
-  { value: "all", label: "All Categories" },
-  { value: "t-shirts", label: "T-Shirts" },
-  { value: "joggers", label: "Joggers" },
-];
 
 const sizes = [
   { value: "", label: "All Sizes" },
@@ -103,24 +95,6 @@ export function ProductFilters({ filters, onFiltersChange, hideGender }: Product
           </div>
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {/* Category Filter */}
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-asc-charcoal mb-2">
-                Category
-              </label>
-              <select
-                id="category"
-                value={filters.category}
-                onChange={(e) => handleFilterChange("category", e.target.value)}
-                className="w-full px-3 py-2 border border-asc-border rounded-md bg-asc-canvas text-asc-matte focus:border-asc-accent focus:outline-none"
-              >
-                {categories.map((category) => (
-                  <option key={category.value} value={category.value}>
-                    {category.label}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             {/* Gender Filter */}
             {!hideGender && (

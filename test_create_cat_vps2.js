@@ -2,25 +2,14 @@ const { Client } = require('ssh2');
 const conn = new Client();
 conn.on('ready', () => {
   const script = `
-    cat << 'EOF' > /var/www/Ascension/testCreateCat2.js
-const { PrismaClient } = require('@prisma/client');
+    cd /var/www/Ascension/apps/backend
+    cat << 'INNER_EOF' > /var/www/Ascension/testCreateCat.js
 const jwt = require('jsonwebtoken');
-require('dotenv').config({ path: '/var/www/Ascension/apps/backend/.env' });
-
+require('dotenv').config({ path: '../../.env' });
 async function test() {
-  const prisma = new PrismaClient();
-  const admins = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] } }
-  });
-  
-  if (admins.length === 0) {
-    console.log("TEST_FAIL: NO ADMIN USERS FOUND");
-    return;
-  }
-  
   const token = jwt.sign(
-    { id: admins[0].id, role: admins[0].role },
-    process.env.JWT_SECRET || 'fallback_secret_key',
+    { id: 'cmnv7qbg30000l4tuyd4uie7a', role: 'ADMIN' },
+    process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
   
@@ -31,7 +20,7 @@ async function test() {
         "Content-Type": "application/json",
         Authorization: "Bearer " + token 
       },
-      body: JSON.stringify({ name: "TestingCat " + Date.now() })
+      body: JSON.stringify({ name: "Test Category " + Date.now() })
     });
     
     const text = await res.text();
@@ -41,11 +30,9 @@ async function test() {
     console.log("TEST_FAIL_FETCH:", err.message);
   }
 }
-
 test().catch(console.error);
-EOF
-    cd /var/www/Ascension/apps/backend
-    node /var/www/Ascension/testCreateCat2.js
+INNER_EOF
+    node /var/www/Ascension/testCreateCat.js
   `;
   
   conn.exec(script, (err, stream) => {

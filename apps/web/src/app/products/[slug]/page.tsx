@@ -149,7 +149,6 @@ export default function ProductDetailPage({ params }: Props) {
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-asc-matte mb-2">{product.name}</h1>
-            <p className="text-lg text-asc-charcoal capitalize">{product.category}</p>
           </div>
 
           <div className="flex items-baseline gap-3">

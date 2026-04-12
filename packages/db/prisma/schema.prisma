@@ -154,8 +154,6 @@ model Product {
   updatedAt   DateTime  @updatedAt
   
   // Relations
-  category    Category? @relation(fields: [categoryId], references: [id])
-  categoryId  String?
   variants    ProductVariant[]
   images      ProductImage[]
   reviews     Review[]
@@ -167,25 +165,6 @@ model Product {
   @@map("products")
 }
 
-model Category {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  slug        String   @unique
-  description String?
-  image       String?
-  parentId    String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryHierarchy")
-  products Product[]
-  
-  @@map("categories")
-}
 
 model ProductVariant {
   id          String   @id @default(cuid())
