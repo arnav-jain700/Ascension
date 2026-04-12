@@ -23,6 +23,10 @@ model User {
   emailVerifiedAt    DateTime?
   isActive          Boolean   @default(true)
   lastLoginAt       DateTime?
+  passwordChangedAt DateTime?
+  isTwoFactorEnabled Boolean  @default(false)
+  twoFactorSecret    String?
+  settings          Json?
   role              UserRole   @default(CUSTOMER)
   rewardPoints      Int        @default(0)
   createdAt         DateTime  @default(now())

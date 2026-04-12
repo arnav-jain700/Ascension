@@ -24,6 +24,9 @@ conn.on('ready', () => {
     echo "Generating database schema..."
     npm run db:generate
     
+    echo "Pushing schema changes to database..."
+    npx prisma db push --schema=./packages/db/prisma/schema.prisma
+    
     echo "Building apps..."
     npm run build --workspace=apps/web
     npm run build --workspace=apps/backend
