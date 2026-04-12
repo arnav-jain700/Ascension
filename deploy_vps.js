@@ -27,12 +27,17 @@ conn.on('ready', () => {
     echo "Pushing schema changes to database..."
     npx prisma db push --schema=./packages/db/prisma/schema.prisma
     
+    echo "Generating database schema backend bind..."
+    cd apps/backend
+    npx prisma generate
+    cd ../..
+    
     echo "Building apps..."
     npm run build --workspace=apps/web
     npm run build --workspace=apps/backend
     
     echo "Starting PM2..."
-    pm2 stop all || true
+    pm2 delete all || true
     pm2 start npm --name "ascension-backend" -- run start --workspace=apps/backend
     pm2 start npm --name "ascension-web" -- run start --workspace=apps/web
     pm2 save
