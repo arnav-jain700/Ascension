@@ -16,7 +16,7 @@ conn.on('ready', () => {
     
     echo "Wiping caches..."
     rm -f package-lock.json
-    rm -rf node_modules apps/*/node_modules
+    rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist
     
     echo "Installing fresh Linux dependencies..."
     npm install
