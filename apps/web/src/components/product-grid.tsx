@@ -86,6 +86,13 @@ function ProductCard({ product }: { product: Product }) {
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
 
+        {/* Sale Badge */}
+        {product.comparePrice && product.comparePrice > (product.basePrice || 0) && (
+          <div className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-md z-10">
+            Sale • {Math.round(((product.comparePrice - (product.basePrice || 0)) / product.comparePrice) * 100)}% OFF
+          </div>
+        )}
+
         {/* Sliding Buttons */}
         {safeImages.length > 1 && (
           <>
@@ -138,9 +145,16 @@ function ProductCard({ product }: { product: Product }) {
         </h3>
         
         <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-asc-matte">
-            ₹{price.toLocaleString()}
-          </span>
+          <div className="flex items-center space-x-2">
+             {product.comparePrice && product.comparePrice > price ? (
+               <>
+                 <span className="text-sm text-asc-charcoal-muted line-through">₹{product.comparePrice.toLocaleString()}</span>
+                 <span className="text-lg font-bold text-red-600">₹{price.toLocaleString()}</span>
+               </>
+             ) : (
+               <span className="text-lg font-bold text-asc-matte">₹{price.toLocaleString()}</span>
+             )}
+          </div>
           
           {inStock && (
             <span className="text-xs text-green-600 font-medium">

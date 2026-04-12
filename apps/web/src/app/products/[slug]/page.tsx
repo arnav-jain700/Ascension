@@ -155,10 +155,15 @@ export default function ProductDetailPage({ params }: Props) {
             <span className="text-3xl font-bold text-asc-matte">
               ₹{selectedVariant?.price.toLocaleString() || product.basePrice.toLocaleString()}
             </span>
-            {selectedVariant && selectedVariant.price !== product.basePrice && (
-              <span className="text-lg text-asc-charcoal line-through">
-                ₹{product.basePrice.toLocaleString()}
-              </span>
+            {product.comparePrice && product.comparePrice > (selectedVariant?.price || product.basePrice) && (
+              <>
+                <span className="text-lg text-asc-charcoal line-through">
+                  ₹{product.comparePrice.toLocaleString()}
+                </span>
+                <span className="bg-red-600 text-white text-xs font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-md align-middle ms-2">
+                  {Math.round(((product.comparePrice - (selectedVariant?.price || product.basePrice)) / product.comparePrice) * 100)}% OFF
+                </span>
+              </>
             )}
           </div>
 

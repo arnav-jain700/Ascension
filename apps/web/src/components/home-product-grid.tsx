@@ -98,7 +98,7 @@ export function HomeProductGrid() {
                         {/* If there's a discount, calculate and show badge */}
                         {p.comparePrice && p.comparePrice > (p.basePrice || 0) && (
                           <div className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-md">
-                            Sale
+                            Sale • {Math.round(((p.comparePrice - (p.basePrice || 0)) / p.comparePrice) * 100)}% OFF
                           </div>
                         )}
                       </div>

@@ -12,6 +12,7 @@ const mapProductForFrontend = (p: any, siblings: any[] = []) => ({
   description: p.description,
   category: "Uncategorized",
   basePrice: p.price || 0,
+  comparePrice: p.comparePrice || null,
   imageUrls: p.images?.map((img: any) => img.url) || [],
   variants: p.variants?.map((v: any) => ({
     id: v.id,
@@ -309,6 +310,7 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
     seoDescription,
     images = [],
     sizes = [],
+    inventory = 10,
   } = req.body;
 
   // Validate required fields
@@ -364,9 +366,15 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
           name: size,
           sku: `${sku}-${size.toUpperCase()}`,
           price: Number(price),
-          inventory: 10,
+          inventory: Number(inventory),
         }))
       } : undefined,
+      inventory: {
+        create: {
+          quantity: Number(inventory),
+          availableQuantity: Number(inventory),
+        }
+      },
     },
     include: {
       variants: true,

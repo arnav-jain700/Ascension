@@ -20,6 +20,7 @@ export default function NewProduct() {
   const [status, setStatus] = useState("ACTIVE");
   const [genderTag, setGenderTag] = useState("unisex");
   const [sizes, setSizes] = useState("");
+  const [inventory, setInventory] = useState("10");
 
 
   // Image states
@@ -87,6 +88,7 @@ export default function NewProduct() {
         images: uploadedImageUrls,
         tags: [genderTag],
         sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
+        inventory: Number(inventory),
       };
 
       const productRes = await fetch("/api/v1/products", {
@@ -292,6 +294,25 @@ export default function NewProduct() {
                 onChange={(e) => setSizes(e.target.value)}
                 className="block w-full px-3 py-2 border border-asc-border-strong rounded-md shadow-sm focus:ring-asc-matte focus:border-asc-matte sm:text-sm"
                 placeholder="e.g. S, M, L, XL"
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-3">
+            <label htmlFor="inventory" className="block text-sm font-medium text-asc-matte">
+              Initial Stock Level (Per Size) *
+            </label>
+            <div className="mt-1">
+              <input
+                type="number"
+                name="inventory"
+                id="inventory"
+                required
+                min="0"
+                value={inventory}
+                onChange={(e) => setInventory(e.target.value)}
+                className="block w-full px-3 py-2 border border-asc-border-strong rounded-md shadow-sm focus:ring-asc-matte focus:border-asc-matte sm:text-sm"
+                placeholder="10"
               />
             </div>
           </div>
