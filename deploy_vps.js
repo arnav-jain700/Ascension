@@ -22,7 +22,7 @@ conn.on('ready', () => {
     npm install
     
     echo "Generating database schema..."
-    npm run db:generate
+    npx prisma generate --schema=./packages/db/prisma/schema.prisma
     
     echo "Building apps..."
     npm run build --workspace=apps/web
