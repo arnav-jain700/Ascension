@@ -11,6 +11,9 @@ conn.on('ready', () => {
     set -e
     cd /var/www/Ascension
     
+    echo "Fetching latest changes..."
+    git pull origin main
+    
     echo "Wiping caches..."
     rm -f package-lock.json
     rm -rf node_modules apps/*/node_modules
