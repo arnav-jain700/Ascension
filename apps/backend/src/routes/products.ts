@@ -148,7 +148,6 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
       },
     },
   });
-  });
 }));
 
 // Get categories
