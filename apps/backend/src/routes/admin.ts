@@ -250,9 +250,7 @@ router.get("/products", adminAuthMiddleware, asyncHandler(async (req: Authentica
     prisma.product.findMany({
       where,
       include: {
-        category: {
-          select: { id: true, name: true, slug: true },
-        },
+
         inventory: true,
         _count: {
           select: { variants: true, reviews: true },

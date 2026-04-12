@@ -2,20 +2,8 @@ const { Client } = require('ssh2');
 const conn = new Client();
 conn.on('ready', () => {
   const script = `
-    set -e
     cd /var/www/Ascension
-    git pull origin main
-    
-    cd packages/db
-    npx prisma db push --accept-data-loss
-    
-    cd ../../apps/backend
-    npm run build
-    pm2 restart ascension-backend
-    
-    cd ../web
-    npm run build
-    pm2 restart ascension-web
+    ls -la
   `;
   conn.exec(script, (err, stream) => {
     if (err) throw err;

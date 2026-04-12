@@ -7,13 +7,15 @@ conn.on('ready', () => {
     git pull origin main
     
     cd packages/db
-    npx prisma db push --accept-data-loss
+    npx -y dotenv-cli -e ../../.env -- npx prisma db push --accept-data-loss
     
     cd ../../apps/backend
+    npm install
     npm run build
     pm2 restart ascension-backend
     
     cd ../web
+    npm install
     npm run build
     pm2 restart ascension-web
   `;

@@ -369,7 +369,6 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
       } : undefined,
     },
     include: {
-      category: true,
       variants: true,
       images: true,
       inventory: true,

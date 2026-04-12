@@ -3,15 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  const category = await prisma.category.upsert({
-    where: { slug: 'men' },
-    update: {},
-    create: {
-      name: 'Men',
-      slug: 'men',
-      description: 'Men category'
-    }
-  });
+
 
   const product = await prisma.product.upsert({
     where: { slug: 'test-premium-t-shirt' },
@@ -22,7 +14,6 @@ async function main() {
       description: 'A premium t-shirt for testing.',
       sku: 'TEST-TSHIRT-001',
       price: 29.99,
-      categoryId: category.id,
       color: 'Black',
       images: {
         create: [
