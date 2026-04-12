@@ -7,6 +7,7 @@ export interface Product {
   description: string;
   category: string;
   basePrice: number;
+  comparePrice?: number | null;
   imageUrls: string[];
   variants: ProductVariant[];
   inStock: boolean;
