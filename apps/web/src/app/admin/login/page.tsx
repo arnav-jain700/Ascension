@@ -39,7 +39,7 @@ export default function AdminLogin() {
       }
 
       // Store authentication data
-      localStorage.setItem("admin_token", data.data.token);
+      localStorage.setItem("admin_token", data.data.sessionToken);
       localStorage.setItem("admin_user", JSON.stringify(data.data.user));
 
       // Redirect to admin dashboard
