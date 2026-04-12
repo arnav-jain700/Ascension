@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:simple": "tsx watch src/index-simple.ts",
-    "build": "tsc || exit 0",
+    "build": "tsc",
     "start": "node dist/index.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -18,7 +18,7 @@
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
-    "type-check": "echo 'Skipped type-checking for now'"
+    "type-check": "tsc --noEmit"
   },
   "keywords": [
     "ecommerce",
