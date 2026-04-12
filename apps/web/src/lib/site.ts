@@ -17,4 +17,4 @@ export const SITE_BUSINESS_ADDRESS =
   process.env.NEXT_PUBLIC_BUSINESS_ADDRESS ??
   "Lovely Professional University, Jalandhar - Delhi G.T. Road, Phagwara, Punjab 144411, India";
 
-export const SITE_CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "home.ascensionapparel@gmail.com";
+export const SITE_CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "contact@shopascension.in";

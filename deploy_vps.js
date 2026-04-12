@@ -21,6 +21,9 @@ conn.on('ready', () => {
     echo "Installing fresh Linux dependencies..."
     npm install
     
+    echo "Generating database schema..."
+    npm run db:generate
+    
     echo "Building apps..."
     npm run build --workspace=apps/web
     npm run build --workspace=apps/backend
