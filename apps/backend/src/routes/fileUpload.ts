@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import fs from "fs";
 import { asyncHandler } from "../middleware/errorHandler";
 
 const router = express.Router();
@@ -10,6 +11,9 @@ const router = express.Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = ((process.env as any).UPLOAD_DIR as string) || "./uploads";
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
