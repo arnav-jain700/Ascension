@@ -68,7 +68,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         { name: "Dashboard", href: "/admin", icon: HomeIcon },
         { name: "Analytics", href: "/admin/analytics", icon: ChartBarIcon },
-        { name: "Abandoned Carts", href: "/admin/analytics/abandoned-carts", icon: ShoppingBagIcon },
+        { name: "Abandoned Carts", href: "/admin/abandoned-carts", icon: ShoppingBagIcon },
       ]
     },
     {

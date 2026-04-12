@@ -282,7 +282,7 @@ router.get("/products", adminAuthMiddleware, asyncHandler(async (req: Authentica
 }));
 
 // Get abandoned carts
-router.get("/analytics/abandoned-carts", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+router.get("/abandoned-carts", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
   const carts = await prisma.cart.findMany({
     where: {
@@ -311,7 +311,7 @@ router.get("/analytics/abandoned-carts", adminAuthMiddleware, asyncHandler(async
 }));
 
 // Trigger simulated recovery email
-router.post("/analytics/trigger-recovery/:id", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+router.post("/abandoned-carts/trigger-recovery/:id", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
   const { id } = req.params;
   
   // Here we would normally plug into SendGrid, Resend, or AWS SES

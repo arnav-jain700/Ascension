@@ -17,7 +17,7 @@ export default function AbandonedCartsPage() {
   const fetchCarts = async () => {
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("/api/v1/admin/analytics/abandoned-carts", {
+      const res = await fetch("/api/v1/admin/abandoned-carts", {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -34,7 +34,7 @@ export default function AbandonedCartsPage() {
     setSendingId(cartId);
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`/api/v1/admin/analytics/trigger-recovery/${cartId}`, {
+      const res = await fetch(`/api/v1/admin/abandoned-carts/trigger-recovery/${cartId}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
