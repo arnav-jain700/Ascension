@@ -698,7 +698,7 @@ router.get("/sessions", authMiddleware, asyncHandler(async (req: AuthenticatedRe
   const authHeader = req.headers.authorization;
   const currentToken = authHeader?.substring(7);
 
-  const mappedSessions = sessions.map(s => {
+  const mappedSessions = sessions.map((s: any) => {
     let ua = s.userAgent || "";
     let ip = s.ipAddress || "";
     

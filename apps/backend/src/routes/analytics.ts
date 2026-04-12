@@ -167,7 +167,7 @@ router.get("/dashboard", asyncHandler(async (req: express.Request, res: express.
   });
 
   // Aggregate data
-  const aggregatedData = analytics.reduce((acc: any, item) => {
+  const aggregatedData = analytics.reduce((acc: any, item: any) => {
     const date = item.createdAt.toISOString().split('T')[0] || 'unknown';
     
     if (!acc[date]) {

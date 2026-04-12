@@ -281,7 +281,7 @@ export default function CheckoutPage() {
       // Store complete formatted payload for use in Success page invoice generation instantly
       const finalOrderData = {
          orderNumber: resData.data?.orderNumber || `ASC-${Date.now()}`,
-         customer: { name: guestName || user?.name || "Customer", email: guestEmail || user?.email || "", phone: guestPhone || user?.phone || "" },
+         customer: { name: guestName || (user as any)?.name || (user as any)?.firstName || "Customer", email: guestEmail || user?.email || "", phone: guestPhone || user?.phone || "" },
          shippingAddress: orderData.shippingAddress,
          billingAddress: orderData.billingAddress,
          paymentMethod: orderData.paymentMethod?.type || "Card",

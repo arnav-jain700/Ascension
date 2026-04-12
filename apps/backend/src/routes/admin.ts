@@ -297,14 +297,14 @@ router.get("/analytics/abandoned-carts", adminAuthMiddleware, asyncHandler(async
     orderBy: { updatedAt: "desc" }
   });
 
-  const userIds = carts.map(c => c.userId).filter(Boolean) as string[];
+  const userIds = carts.map((c: any) => c.userId).filter(Boolean) as string[];
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: { id: true, name: true, email: true }
   });
 
-  const formattedCarts = carts.map(cart => {
-    const user = cart.userId ? users.find(u => u.id === cart.userId) || null : null;
+  const formattedCarts = carts.map((cart: any) => {
+    const user = cart.userId ? users.find((u: any) => u.id === cart.userId) || null : null;
     const totalValue = cart.items.reduce((sum: number, item: any) => sum + (item.quantity * ((item.variant as any)?.price || 0)), 0);
     return { ...cart, user, totalValue };
   });
