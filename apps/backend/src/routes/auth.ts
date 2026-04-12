@@ -118,6 +118,7 @@ router.post("/register", authLimiter, asyncHandler(async (req: express.Request, 
       emailVerified: true,
       addresses: true,
       isActive: true,
+      role: true,
       createdAt: true,
     },
   });
@@ -196,6 +197,7 @@ router.post("/login", authLimiter, asyncHandler(async (req: express.Request, res
       lastLoginAt: true,
       addresses: true,
       isTwoFactorEnabled: true,
+      role: true,
     },
   });
 
@@ -306,7 +308,7 @@ router.post("/2fa/login", authLimiter, asyncHandler(async (req: express.Request,
         id: true, email: true, name: true, phone: true, dateOfBirth: true,
         gender: true, emailVerified: true, isActive: true, 
         isTwoFactorEnabled: true, twoFactorSecret: true,
-        lastLoginAt: true, addresses: true,
+        lastLoginAt: true, addresses: true, role: true,
       }
     });
 
@@ -392,6 +394,7 @@ router.get("/profile", authMiddleware, asyncHandler(async (req: AuthenticatedReq
       createdAt: true,
       updatedAt: true,
       addresses: true,
+      role: true,
     },
   });
 
@@ -460,6 +463,7 @@ router.put("/profile", authMiddleware, asyncHandler(async (req: AuthenticatedReq
       lastLoginAt: true,
       createdAt: true,
       updatedAt: true,
+      role: true,
     },
   });
 
@@ -516,6 +520,7 @@ router.put("/profile", authMiddleware, asyncHandler(async (req: AuthenticatedReq
       createdAt: true,
       updatedAt: true,
       addresses: true,
+      role: true,
     },
   });
 
