@@ -148,6 +148,106 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
       },
     },
   });
+  });
+}));
+
+// Get categories
+router.get("/categories/list", asyncHandler(async (req: express.Request, res: express.Response) => {
+  const categories = await prisma.category.findMany({
+    where: { isActive: true },
+    include: {
+      parent: {
+        select: { id: true, name: true },
+      },
+      children: {
+        select: { id: true, name: true, slug: true },
+      },
+      _count: {
+        select: { products: true },
+      },
+    },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  res.status(200).json({
+    success: true,
+    data: categories,
+  });
+}));
+
+// Create category (admin only)
+router.post("/categories", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  const { name, description, parentId, image, sortOrder = 0 } = req.body;
+
+  if (!name) {
+    return res.status(400).json({
+      success: false,
+      error: "Validation Error",
+      message: "Category name is required",
+    });
+  }
+
+  // Generate slug
+  let slug = name.toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  // Ensure unique slug
+  let uniqueSlug = slug;
+  let counter = 1;
+  while (await prisma.category.findUnique({ where: { slug: uniqueSlug } })) {
+    uniqueSlug = `${slug}-${counter}`;
+    counter++;
+  }
+
+  const category = await prisma.category.create({
+    data: {
+      name,
+      slug: uniqueSlug,
+      description,
+      parentId: parentId || null,
+      image,
+      sortOrder,
+    },
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Category created successfully",
+    data: category,
+  });
+}));
+
+// Delete category (admin only)
+router.delete("/categories/:id", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  const { id } = req.params;
+
+  const category = await prisma.category.findUnique({
+    where: { id },
+  });
+
+  if (!category) {
+    return res.status(404).json({
+      success: false,
+      error: "Not Found",
+      message: "Category not found",
+    });
+  }
+
+  // Update associated products to remove category assignment
+  await prisma.product.updateMany({
+    where: { categoryId: id },
+    data: { categoryId: null },
+  });
+
+  await prisma.category.delete({
+    where: { id },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Category deleted successfully",
+  });
 }));
 
 // Get single product by slug (public endpoint)
@@ -318,6 +418,7 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
     seoTitle,
     seoDescription,
     images = [],
+    sizes = [],
   } = req.body;
 
   // Validate required fields
@@ -367,6 +468,14 @@ router.post("/", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequ
           url: img.url || img,
           sortOrder: index,
           isActive: true
+        }))
+      } : undefined,
+      variants: sizes && sizes.length > 0 ? {
+        create: sizes.map((size: string) => ({
+          name: size,
+          sku: `${sku}-${size.toUpperCase()}`,
+          price: Number(price),
+          inventory: 10,
         }))
       } : undefined,
     },
@@ -451,104 +560,6 @@ router.delete("/:id", adminAuthMiddleware, asyncHandler(async (req: Authenticate
   res.status(200).json({
     success: true,
     message: "Product deleted successfully",
-  });
-}));
-
-// Get categories
-router.get("/categories/list", asyncHandler(async (req: express.Request, res: express.Response) => {
-  const categories = await prisma.category.findMany({
-    where: { isActive: true },
-    include: {
-      parent: {
-        select: { id: true, name: true },
-      },
-      children: {
-        select: { id: true, name: true, slug: true },
-      },
-      _count: {
-        select: { products: true },
-      },
-    },
-    orderBy: { sortOrder: "asc" },
-  });
-
-  res.status(200).json({
-    success: true,
-    data: categories,
-  });
-}));
-
-// Create category (admin only)
-router.post("/categories", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
-  const { name, description, parentId, image, sortOrder = 0 } = req.body;
-
-  if (!name) {
-    return res.status(400).json({
-      success: false,
-      error: "Validation Error",
-      message: "Category name is required",
-    });
-  }
-
-  // Generate slug
-  let slug = name.toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  // Ensure unique slug
-  let uniqueSlug = slug;
-  let counter = 1;
-  while (await prisma.category.findUnique({ where: { slug: uniqueSlug } })) {
-    uniqueSlug = `${slug}-${counter}`;
-    counter++;
-  }
-
-  const category = await prisma.category.create({
-    data: {
-      name,
-      slug: uniqueSlug,
-      description,
-      parentId: parentId || null,
-      image,
-      sortOrder,
-    },
-  });
-
-  res.status(201).json({
-    success: true,
-    message: "Category created successfully",
-    data: category,
-  });
-}));
-// Delete category (admin only)
-router.delete("/categories/:id", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
-  const { id } = req.params;
-
-  const category = await prisma.category.findUnique({
-    where: { id },
-  });
-
-  if (!category) {
-    return res.status(404).json({
-      success: false,
-      error: "Not Found",
-      message: "Category not found",
-    });
-  }
-
-  // Update associated products to remove category assignment
-  await prisma.product.updateMany({
-    where: { categoryId: id },
-    data: { categoryId: null },
-  });
-
-  await prisma.category.delete({
-    where: { id },
-  });
-
-  res.status(200).json({
-    success: true,
-    message: "Category deleted successfully",
   });
 }));
 

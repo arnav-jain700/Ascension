@@ -52,7 +52,10 @@ export default function AccountSecurityPage() {
 
   useEffect(() => {
     const fetchSecuritySettings = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);

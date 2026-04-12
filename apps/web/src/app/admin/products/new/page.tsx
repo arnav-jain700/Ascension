@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon, PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function NewProduct() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function NewProduct() {
   const [status, setStatus] = useState("ACTIVE");
   const [categoryId, setCategoryId] = useState("");
   const [genderTag, setGenderTag] = useState("unisex");
+  const [sizes, setSizes] = useState("");
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -34,7 +36,7 @@ export default function NewProduct() {
     // Fetch categories for the select dropdown
     const fetchCategories = async () => {
       try {
-        const response = await fetch("/api/v1/products/categories/list");
+        const response = await fetch(`${API_BASE_URL}/api/v1/products/categories/list`);
         if (response.ok) {
           const data = await response.json();
           setCategories(data.data || []);
@@ -51,7 +53,7 @@ export default function NewProduct() {
     setCreatingCategory(true);
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("/api/v1/products/categories", {
+      const res = await fetch(`${API_BASE_URL}/api/v1/products/categories`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: newCategoryName })
@@ -106,7 +108,7 @@ export default function NewProduct() {
           formData.append("images", file);
         });
 
-        const uploadRes = await fetch("/api/v1/upload/product-images", {
+        const uploadRes = await fetch(`${API_BASE_URL}/api/v1/upload/product-images`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -132,9 +134,10 @@ export default function NewProduct() {
         categoryId: categoryId || undefined,
         images: uploadedImageUrls,
         tags: [genderTag],
+        sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
       };
 
-      const productRes = await fetch("/api/v1/products", {
+      const productRes = await fetch(`${API_BASE_URL}/api/v1/products`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -147,6 +150,7 @@ export default function NewProduct() {
       if (!productRes.ok) throw new Error(productData.message || "Failed to create product");
 
       // Redirect to products list on success
+      alert("Product has been added successfully!");
       router.push("/admin/products");
 
     } catch (err: any) {
@@ -350,6 +354,23 @@ export default function NewProduct() {
                 <option value="men">Men's Only</option>
                 <option value="women">Women's Only</option>
               </select>
+            </div>
+          </div>
+
+          <div className="sm:col-span-3">
+            <label htmlFor="sizes" className="block text-sm font-medium text-asc-matte">
+              Available Sizes (comma separated)
+            </label>
+            <div className="mt-1">
+              <input
+                type="text"
+                name="sizes"
+                id="sizes"
+                value={sizes}
+                onChange={(e) => setSizes(e.target.value)}
+                className="block w-full px-3 py-2 border border-asc-border-strong rounded-md shadow-sm focus:ring-asc-matte focus:border-asc-matte sm:text-sm"
+                placeholder="e.g. S, M, L, XL"
+              />
             </div>
           </div>
 
