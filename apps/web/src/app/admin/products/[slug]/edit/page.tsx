@@ -210,25 +210,16 @@ export default function EditProduct({ params }: Props) {
               Color Name *
             </label>
             <div className="mt-1">
-              <select
+              <input
+                type="text"
                 id="color"
                 name="color"
                 required
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 className="block w-full px-3 py-2 border border-asc-border-strong bg-white rounded-md shadow-sm focus:ring-asc-matte focus:border-asc-matte sm:text-sm capitalize"
-              >
-                <option value="">Select a color</option>
-                <option value="black">Black</option>
-                <option value="white">White</option>
-                <option value="gray">Gray</option>
-                <option value="navy">Navy</option>
-                <option value="olive">Olive</option>
-                <option value="red">Red</option>
-                <option value="blue">Blue</option>
-                <option value="green">Green</option>
-                <option value="yellow">Yellow</option>
-              </select>
+                placeholder="e.g. Navy Blue"
+              />
             </div>
           </div>
 

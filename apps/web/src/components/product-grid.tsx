@@ -134,12 +134,6 @@ function ProductCard({ product }: { product: Product }) {
       </div>
       
       <div className="p-4">
-        <div className="mb-2">
-          <span className="text-xs text-asc-charcoal uppercase tracking-wide">
-            {product.category}
-          </span>
-        </div>
-        
         <h3 className="font-medium text-asc-matte mb-2 group-hover:text-asc-accent transition-colors">
           {product.name}
         </h3>

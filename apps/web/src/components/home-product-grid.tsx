@@ -117,9 +117,6 @@ export function HomeProductGrid() {
                   </div>
                   
                   <div className="mt-5 space-y-1.5 flex flex-col items-center text-center">
-                    <p className="text-[10px] sm:text-xs uppercase tracking-widest text-asc-charcoal-muted font-medium">
-                      {p.category || "Apparel"}
-                    </p>
                     <h3 className="font-semibold text-sm sm:text-base text-asc-matte group-hover:text-asc-accent transition-colors">
                       {p.name}
                     </h3>
