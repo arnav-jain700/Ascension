@@ -83,3 +83,33 @@ export const sendOrderConfirmationEmail = async (email: string, name: string, or
     console.error("Failed to send order confirmation email:", error);
   }
 };
+
+export const sendPasswordResetEmail = async (email: string, name: string, resetToken: string) => {
+  const resetLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/auth/reset-password?token=${resetToken}`;
+  
+  if (!resend) {
+    console.log(`[EMAIL LOGGER] Password Reset Email suppressed. Missing RESEND_API_KEY.`);
+    console.log(`[EMAIL LOGGER] -> To: ${email}`);
+    console.log(`[EMAIL LOGGER] -> Link: ${resetLink}`);
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: "Ascension Security <security@ascension.com>",
+      to: email,
+      subject: "Password Reset Request",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Password Reset Request</h2>
+          <p>Hi ${name},</p>
+          <p>We received a request to reset your password. Click the link below to choose a new one:</p>
+          <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background-color: #000; color: #fff; text-decoration: none; border-radius: 4px; margin: 20px 0;">Reset Password</a>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Failed to send password reset email:", error);
+  }
+};

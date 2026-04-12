@@ -19,7 +19,7 @@ import qrcode from "qrcode";
 import { prisma } from "../index";
 import { asyncHandler } from "../middleware/errorHandler";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
-import { sendWelcomeEmail } from "../services/emailService";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "../services/emailService";
 import crypto from "crypto";
 
 const router = express.Router();
@@ -952,6 +952,41 @@ router.delete("/account", authMiddleware, asyncHandler(async (req: Authenticated
   res.status(200).json({
     success: true,
     message: "Account and all scattered data deleted successfully",
+  });
+}));
+
+// Forgot Password
+router.post("/forgot-password", authLimiter, asyncHandler(async (req: express.Request, res: express.Response) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  
+  if (!user) {
+    return res.status(200).json({ success: true, message: "If your email is registered, you will receive a password reset link." });
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  
+  await prisma.verificationToken.deleteMany({
+    where: { identifier: user.email }
+  });
+
+  await prisma.verificationToken.create({
+    data: {
+      identifier: user.email,
+      token: resetToken,
+      expires: new Date(Date.now() + 1 * 60 * 60 * 1000) // 1 hour
+    }
+  });
+
+  await sendPasswordResetEmail(user.email, user.name || "User", resetToken);
+
+  res.status(200).json({
+    success: true,
+    message: "If your email is registered, you will receive a password reset link."
   });
 }));
 

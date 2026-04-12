@@ -3,7 +3,7 @@ import { SITE_BUSINESS_ADDRESS, SITE_CONTACT_EMAIL } from "@/lib/site";
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-3xl flex-1 px-4 py-16 sm:px-6 sm:py-24">
+    <div className="mx-auto max-w-4xl flex-1 px-4 py-16 sm:px-6 sm:py-24">
       <p className="text-sm text-asc-charcoal">
         <Link href="/" className="font-medium text-asc-accent hover:underline">
           Home
@@ -46,7 +46,7 @@ export default function AboutPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-asc-charcoal w-24">Email:</span>
-                <span className="font-medium flex-1 text-right break-all ml-4">
+                <span className="font-medium flex-1 text-right ml-4">
                   <a href={`mailto:${SITE_CONTACT_EMAIL}`} className="hover:underline">{SITE_CONTACT_EMAIL}</a>
                 </span>
               </div>

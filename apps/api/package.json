@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run build -w @ascension/db && tsx watch src/index.ts",
+    "dev:old": "npm run build -w @ascension/db && tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src"
