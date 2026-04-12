@@ -8,9 +8,7 @@ const links = [
   { href: "/account/profile", label: "Profile & details" },
   { href: "/account/addresses", label: "Addresses" },
   { href: "/account/orders", label: "Orders & invoices" },
-  { href: "/account/rewards", label: "Loyalty Rewards" },
   { href: "/account/security", label: "Password" },
-  { href: "/account/payment-methods", label: "Payment methods" },
 ] as const;
 
 export function AccountSidebar() {

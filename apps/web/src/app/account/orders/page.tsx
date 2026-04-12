@@ -52,18 +52,40 @@ export default function AccountOrdersPage() {
 
       try {
         setLoading(true);
-        // TODO: Implement actual API call
-        // const response = await fetch("/api/v1/orders", {
-        //   headers: {
-        //     "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}`,
-        //   },
-        // });
+        const token = localStorage.getItem("ascension-auth-token");
+        const response = await fetch("/api/v1/orders", {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
         
-        // Simulate API call with mock data
-        setTimeout(() => {
-          setOrders([]);
-          setLoading(false);
-        }, 1000);
+        const json = await response.json();
+        if (json.success) {
+          const mappedOrders = json.data.orders.map((o: any) => ({
+            id: o.id,
+            orderNumber: o.orderNumber,
+            date: o.createdAt,
+            total: o.total,
+            status: o.status.toLowerCase(),
+            items: o.items.map((i: any) => ({
+              id: i.id,
+              name: i.product?.name || i.name,
+              slug: i.product?.slug || "",
+              variant: { size: i.variant?.name || "N/A", color: i.variant?.sku || "N/A" },
+              quantity: i.quantity,
+              price: i.price,
+              image: i.image,
+            })),
+            shippingAddress: o.shippingAddress,
+            trackingNumber: o.trackingNumber,
+            estimatedDelivery: o.estimatedDelivery
+          }));
+          setOrders(mappedOrders);
+        } else {
+          setError(json.message || "Failed to load orders.");
+        }
+        setLoading(false);
       } catch (err) {
         setError("Failed to load orders. Please try again.");
         setLoading(false);

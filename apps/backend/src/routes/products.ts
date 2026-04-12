@@ -44,6 +44,8 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
     gender,
     minPrice,
     maxPrice,
+    color,
+    size,
   } = req.query;
 
   const skip = (Number(page) - 1) * Number(limit);
@@ -62,7 +64,13 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
     if (maxPrice) where.price.lte = Number(maxPrice);
   }
 
+  if (color) {
+    where.color = { equals: color as string, mode: "insensitive" };
+  }
 
+  if (size) {
+    where.sizes = { has: size as string };
+  }
 
   if (search) {
     where.OR = [
