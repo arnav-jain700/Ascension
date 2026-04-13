@@ -18,7 +18,7 @@ export function HomeManifesto() {
             className="relative justify-self-center lg:justify-self-start w-full max-w-md aspect-[4/5] rounded-xl overflow-hidden shadow-sm ring-1 ring-asc-border"
           >
             <Image
-              src="/images/manifesto_img.png"
+              src="/images/manifesto_new.jpg"
               alt="Ascension Essentials"
               fill
               className="object-cover"
