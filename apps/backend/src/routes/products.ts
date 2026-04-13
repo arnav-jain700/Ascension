@@ -69,7 +69,7 @@ router.get("/", asyncHandler(async (req: express.Request, res: express.Response)
   }
 
   if (size) {
-    where.sizes = { has: size as string };
+    where.variants = { some: { name: { equals: size as string, mode: "insensitive" } } };
   }
 
   if (search) {

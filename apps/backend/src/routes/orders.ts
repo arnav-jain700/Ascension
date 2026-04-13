@@ -15,7 +15,7 @@ const mapPaymentMethod = (type: string) => {
 const router = express.Router();
 
 // Get customer orders
-router.get("/", asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+router.get("/", authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
   const {
     page = 1,
     limit = 10,

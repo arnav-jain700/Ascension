@@ -97,6 +97,12 @@ class ApiClient {
     if (filters.color) {
       params.append("color", filters.color);
     }
+    if (filters.minPrice) {
+      params.append("minPrice", filters.minPrice.toString());
+    }
+    if (filters.maxPrice) {
+      params.append("maxPrice", filters.maxPrice.toString());
+    }
     if (filters.sort) {
       params.append("sort", filters.sort);
     }
