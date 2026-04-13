@@ -7,13 +7,13 @@ import { authMiddleware, optionalAuthMiddleware, AuthenticatedRequest } from "..
 
 const router = express.Router();
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "",
-  key_secret: process.env.RAZORPAY_KEY_SECRET || "",
-});
-
 // Create Razorpay Order
 router.post("/razorpay/create", optionalAuthMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID || "",
+    key_secret: process.env.RAZORPAY_KEY_SECRET || "",
+  });
+
   const { orderNumber, amount } = req.body;
 
   if (!orderNumber || !amount) {
