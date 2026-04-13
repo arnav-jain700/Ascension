@@ -292,7 +292,7 @@ export default function CheckoutPage() {
         const isLoaded = await loadRazorpay();
         if (!isLoaded) throw new Error("Razorpay SDK failed to load");
 
-        const authHeader = user ? { "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}` } : {};
+        const authHeader: Record<string, string> = user ? { "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}` } : {};
         
         const createRes = await fetch("/api/v1/payments/razorpay/create", {
           method: "POST",
