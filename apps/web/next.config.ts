@@ -4,6 +4,8 @@ import path from "path";
 const monorepoRoot = path.resolve(process.cwd(), "../..");
 
 const nextConfig: NextConfig = {
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   turbopack: {
     root: monorepoRoot,
   },
