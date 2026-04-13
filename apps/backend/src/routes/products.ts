@@ -423,9 +423,23 @@ router.put("/:id", adminAuthMiddleware, asyncHandler(async (req: AuthenticatedRe
   if (updateData.cost) updateData.cost = Number(updateData.cost);
   if (updateData.weight) updateData.weight = Number(updateData.weight);
 
+  const { images, ...restUpdateData } = updateData;
+  const updatePayload: any = { ...restUpdateData };
+
+  if (images && images.length > 0) {
+    updatePayload.images = {
+      deleteMany: {}, // Clear previous image bindings
+      create: images.map((img: any, index: number) => ({
+        url: img.url || img,
+        sortOrder: index,
+        isActive: true
+      }))
+    };
+  }
+
   const updatedProduct = await prisma.product.update({
     where: { id },
-    data: updateData,
+    data: updatePayload,
     include: {
       variants: true,
       images: true,
