@@ -89,6 +89,7 @@ router.post("/register", authLimiter, asyncHandler(async (req: express.Request, 
       email: email.toLowerCase(),
       passwordHash: hashedPassword,
       phone,
+      emailVerified: true, // Auto-verify due to suppressed email service in dev/MVP
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       gender: gender === "prefer-not" ? "PREFER_NOT_TO_SAY" :
               gender === "non-binary" ? "OTHER" :
@@ -123,7 +124,7 @@ router.post("/register", authLimiter, asyncHandler(async (req: express.Request, 
     },
   });
 
-  // Generate Verification Token
+  // Generate Verification Token (Kept for later production use)
   const verifyToken = crypto.randomBytes(32).toString("hex");
   await prisma.verificationToken.create({
     data: {
@@ -133,12 +134,12 @@ router.post("/register", authLimiter, asyncHandler(async (req: express.Request, 
     }
   });
 
-  // Send Email
+  // Send Email (Suppressed silently if APIKey is missing)
   await sendWelcomeEmail(user.email, user.name, verifyToken);
 
   res.status(201).json({
     success: true,
-    message: "User registered successfully. Please verify your email.",
+    message: "User registered successfully! You may now log in.",
     data: {
       user: formatUser(user),
       sessionToken: null,
