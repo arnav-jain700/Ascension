@@ -38,7 +38,7 @@ export const authMiddleware = async (
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "AscensionSuperSecretKey2026!@#") as any;
 
     // Check if user exists and is active
     const user = await prisma.user.findUnique({
@@ -118,7 +118,7 @@ export const optionalAuthMiddleware = async (
       return next();
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "AscensionSuperSecretKey2026!@#") as any;
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
@@ -171,7 +171,7 @@ export const adminAuthMiddleware = async (
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "AscensionSuperSecretKey2026!@#") as any;
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },

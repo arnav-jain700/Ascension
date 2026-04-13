@@ -34,7 +34,7 @@ const authLimiter = rateLimit({
 const generateToken = (userId: string) => {
   return jwt.sign(
     { id: userId },
-    process.env.JWT_SECRET!,
+    process.env.JWT_SECRET || "AscensionSuperSecretKey2026!@#",
     { expiresIn: (process.env.JWT_EXPIRES_IN || "7d") as any }
   );
 };
@@ -241,7 +241,7 @@ router.post("/login", authLimiter, asyncHandler(async (req: express.Request, res
     // Generate a temporary 5-minute token for 2FA validation
     const tempToken = jwt.sign(
       { id: user.id, requires2FA: true },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET || "AscensionSuperSecretKey2026!@#",
       { expiresIn: "5m" }
     );
     
@@ -297,7 +297,7 @@ router.post("/2fa/login", authLimiter, asyncHandler(async (req: express.Request,
   }
 
   try {
-    const payload = jwt.verify(tempToken, process.env.JWT_SECRET!) as { id: string, requires2FA: boolean };
+    const payload = jwt.verify(tempToken, process.env.JWT_SECRET || "AscensionSuperSecretKey2026!@#") as { id: string, requires2FA: boolean };
     
     if (!payload.requires2FA) {
       throw new Error();
