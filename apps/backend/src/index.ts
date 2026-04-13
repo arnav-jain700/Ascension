@@ -15,6 +15,7 @@ import { orderRoutes } from "./routes/orders";
 import { adminRoutes } from "./routes/admin";
 import { analyticsRoutes } from "./routes/analytics";
 import { marketingRoutes } from "./routes/marketing";
+import { paymentRoutes } from "./routes/payments";
 
 // Load environment variables
 dotenv.config();
@@ -102,6 +103,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/upload', fileUploadRoutes);
 app.use('/api/v1/marketing', marketingRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // Protected routes (require authentication)
 app.use('/api/v1/profile', authMiddleware);

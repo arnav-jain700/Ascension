@@ -302,6 +302,7 @@ model Payment {
   status           PaymentStatus @default(PENDING)
   method           PaymentMethodEnum
   provider         String?
+  providerOrderId  String?
   transactionId    String?
   gatewayResponse  Json?
   failureReason    String?

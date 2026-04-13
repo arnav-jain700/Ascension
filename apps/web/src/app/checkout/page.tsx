@@ -56,8 +56,6 @@ export default function CheckoutPage() {
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
   const [promoError, setPromoError] = useState("");
   const [validatingPromo, setValidatingPromo] = useState(false);
-  const [showStripeMock, setShowStripeMock] = useState(false);
-  const [stripeLoading, setStripeLoading] = useState(false);
 
   // Guest inputs
   const [guestEmail, setGuestEmail] = useState("");
@@ -190,25 +188,22 @@ export default function CheckoutPage() {
     }
   };
 
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePlaceOrderClick = async () => {
     if ((!selectedAddress && !guestEmail) || !selectedPayment) {
       setError("Please complete all required fields");
       return;
     }
-    if (selectedPayment.type === "card") {
-      setShowStripeMock(true);
-    } else {
-      await processOrder();
-    }
-  };
-
-  const handleStripeSuccess = async () => {
-    setStripeLoading(true);
-    setTimeout(async () => {
-      setStripeLoading(false);
-      setShowStripeMock(false);
-      await processOrder();
-    }, 1500);
+    await processOrder();
   };
 
   const processOrder = async () => {
@@ -276,16 +271,15 @@ export default function CheckoutPage() {
         throw new Error(resData.message || "Order failed to process");
       }
 
-      setProcessingPayment(true);
-      
-      // Store complete formatted payload for use in Success page invoice generation instantly
+      const orderNumber = resData.data?.orderNumber;
+
       const finalOrderData = {
-         orderNumber: resData.data?.orderNumber || `ASC-${Date.now()}`,
+         orderNumber: orderNumber || `ASC-${Date.now()}`,
          customer: { name: guestName || (user as any)?.name || (user as any)?.firstName || "Customer", email: guestEmail || user?.email || "", phone: guestPhone || user?.phone || "" },
          shippingAddress: orderData.shippingAddress,
          billingAddress: orderData.billingAddress,
          paymentMethod: orderData.paymentMethod?.type || "Card",
-         items: items, // Pass the fully hydrated cart items directly so the Success UI can read .variant.size
+         items: items, 
          subtotal: orderData.subtotal,
          shipping: orderData.shippingCost,
          total: orderData.total,
@@ -293,13 +287,85 @@ export default function CheckoutPage() {
       };
       localStorage.setItem(`order_${finalOrderData.orderNumber}`, JSON.stringify(finalOrderData));
 
-      setTimeout(() => {
-        setSuccess(true);
-        clearCart();
-        setLoading(false);
-        setProcessingPayment(false);
-        router.push(`/checkout/success?order=${finalOrderData.orderNumber}`);
-      }, 1500);
+      if (selectedPayment.type !== "cod") {
+        setProcessingPayment(true);
+        const isLoaded = await loadRazorpay();
+        if (!isLoaded) throw new Error("Razorpay SDK failed to load");
+
+        const authHeader = user ? { "Authorization": `Bearer ${localStorage.getItem("ascension-auth-token")}` } : {};
+        
+        const createRes = await fetch("/api/v1/payments/razorpay/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeader },
+          body: JSON.stringify({ orderNumber, amount: total })
+        });
+        
+        const createData = await createRes.json();
+        if (!createRes.ok) throw new Error(createData.message || "Failed to initiate payment");
+
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_your_key_id",
+          amount: createData.data.amount,
+          currency: createData.data.currency,
+          name: "Ascension Apparel",
+          description: "Order Payment",
+          order_id: createData.data.order_id,
+          handler: async function (response: any) {
+            setProcessingPayment(true);
+            const verifyRes = await fetch("/api/v1/payments/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderNumber,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              setSuccess(true);
+              clearCart();
+              setLoading(false);
+              setProcessingPayment(false);
+              router.push(`/checkout/success?order=${finalOrderData.orderNumber}`);
+            } else {
+              setError("Payment verification failed. Please contact support.");
+              setLoading(false);
+              setProcessingPayment(false);
+            }
+          },
+          prefill: {
+            name: finalOrderData.customer.name,
+            email: finalOrderData.customer.email,
+            contact: finalOrderData.customer.phone
+          },
+          theme: { color: "#111827" },
+          modal: {
+            ondismiss: function() {
+              setLoading(false);
+              setProcessingPayment(false);
+            }
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on("payment.failed", function (response: any) {
+          setError(response.error.description);
+          setLoading(false);
+          setProcessingPayment(false);
+        });
+        rzp.open();
+      } else {
+        setProcessingPayment(true);
+        setTimeout(() => {
+          setSuccess(true);
+          clearCart();
+          setLoading(false);
+          setProcessingPayment(false);
+          router.push(`/checkout/success?order=${finalOrderData.orderNumber}`);
+        }, 1500);
+      }
 
     } catch (err) {
       setError("Failed to place order. Please try again.");
@@ -731,87 +797,10 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* Stripe Mock Overlay */}
-      {showStripeMock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
-            {/* Header */}
-            <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg className="w-6 h-6 text-[#635BFF]" viewBox="0 0 40 40">
-                  <path fill="currentColor" d="M20,40C8.95,40,0,31.05,0,20S8.95,0,20,0s20,8.95,20,20S31.05,40,20,40z M20,2C10.07,2,2,10.07,2,20s8.07,18,18,18 s18-8.07,18-18S29.93,2,20,2z"/>
-                  <path fill="currentColor" d="M19.16,13.68c-1.39-0.34-2-0.78-2-1.39c0-0.71,0.73-1.07,1.96-1.07h9.09v-4.1h-8.86 c-3.95,0-6.17,1.86-6.17,4.88c0,3,1.9,4.42,4.86,5.15c2.14,0.51,2.54,0.95,2.54,1.49c0,0.85-0.92,1.24-2.19,1.24H8.05v4.32h10.99 c3.02,0,5.83-1.22,5.83-4.91C24.87,15.65,22.25,14.44,19.16,13.68z"/>
-                </svg>
-                <span className="font-medium text-gray-800">Ascension Dev</span>
-              </div>
-              <span className="text-gray-500 font-medium">₹{total.toLocaleString('en-IN')}</span>
-            </div>
-            
-            {/* Body */}
-            <div className="p-6 space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
-                  <input type="text" readOnly value={user?.email || "guest@example.com"} className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50 cursor-not-allowed outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Card information</label>
-                  <div className="border border-gray-300 rounded overflow-hidden">
-                    <div className="flex border-b border-gray-300">
-                      <div className="w-full flex items-center bg-gray-50 px-2 text-gray-500 text-sm">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-                        •••• •••• •••• {selectedPayment?.last4 || "4242"}
-                      </div>
-                    </div>
-                    <div className="flex">
-                      <div className="w-1/2 border-r border-gray-300 p-2 text-sm text-gray-500 bg-gray-50 text-center">
-                        {selectedPayment?.expiryMonth || "12"} / {selectedPayment?.expiryYear?.slice(-2) || "25"}
-                      </div>
-                      <div className="w-1/2 p-2 text-sm text-gray-500 bg-gray-50 text-center">
-                        •••
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Name on card</label>
-                  <input type="text" readOnly value={selectedAddress?.name || "Customer Name"} className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50 cursor-not-allowed outline-none" />
-                </div>
-              </div>
-              
-              {/* Fake Pay Button */}
-              <button 
-                onClick={handleStripeSuccess}
-                disabled={stripeLoading}
-                className="w-full rounded bg-[#635BFF] hover:bg-[#5249ea] text-white py-3 px-4 font-semibold text-sm transition-colors flex justify-center items-center h-12"
-              >
-                {stripeLoading ? (
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : (
-                  `Pay ₹${total.toLocaleString('en-IN')}`
-                )}
-              </button>
-            </div>
-            
-            {/* Dev Mode Banner */}
-            <div className="bg-amber-100 text-amber-800 text-xs font-medium py-2 px-4 text-center">
-              TEST MODE (Sandboxed Environment)
-            </div>
-            
-            {/* Close */}
-            {!stripeLoading && (
-              <button onClick={() => setShowStripeMock(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Dev Mode Banner Re-purposed to show Razorpay hint */}
+      <div className="bg-amber-100 text-amber-800 text-xs font-medium py-2 px-4 text-center mt-12 rounded mx-4 sm:mx-6 mb-12">
+        <span className="font-bold">Test Mode</span> — Use Razorpay test credentials or UPI to complete payment mockups.
+      </div>
     </div>
   );
 }
