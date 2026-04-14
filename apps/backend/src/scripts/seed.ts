@@ -29,6 +29,19 @@ async function main() {
   });
 
   console.log(`Admin user seeded successfully with email: ${adminUser.email}`);
+
+  // Seed product tags
+  console.log('Seeding product tags...');
+  const products = await prisma.product.findMany();
+  for (let i = 0; i < products.length; i++) {
+    const p = products[i];
+    let tag = i % 2 === 0 ? "men" : "women";
+    await prisma.product.update({
+      where: { id: p.id },
+      data: { tags: { set: [tag] } }
+    });
+  }
+  console.log('Product tags seeded successfully!');
 }
 
 main()
