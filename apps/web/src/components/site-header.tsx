@@ -110,12 +110,6 @@ export function SiteHeader() {
             <Link href="/products" className={getNavLinkClass(isTransparent)}>
               Shop all
             </Link>
-            <Link href="/men" className={getNavLinkClass(isTransparent)}>
-              Men
-            </Link>
-            <Link href="/women" className={getNavLinkClass(isTransparent)}>
-              Women
-            </Link>
             <a
               href={SITE_BLOG_URL}
               className={getNavLinkClass(isTransparent)}

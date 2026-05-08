@@ -26,16 +26,6 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/men" className="text-asc-charcoal transition-colors hover:text-asc-accent">
-                  Men
-                </Link>
-              </li>
-              <li>
-                <Link href="/women" className="text-asc-charcoal transition-colors hover:text-asc-accent">
-                  Women
-                </Link>
-              </li>
-              <li>
                 <a
                   href={SITE_BLOG_URL}
                   className="text-asc-charcoal transition-colors hover:text-asc-accent"
