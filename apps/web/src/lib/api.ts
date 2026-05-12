@@ -72,6 +72,9 @@ class ApiClient {
     const response = await Promise.race([fetchPromise, timeoutPromise]);
 
     if (!response.ok) {
+      if (response.status === 500) {
+        throw new Error(`API error: 500 Internal Server Error - The backend server may be offline or unreachable.`);
+      }
       throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
