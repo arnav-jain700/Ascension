@@ -17,8 +17,6 @@ interface ProductFiltersProps {
 
 const genders = [
   { value: "all", label: "All Genders" },
-  { value: "men", label: "Men" },
-  { value: "women", label: "Women" },
   { value: "unisex", label: "Unisex" },
 ];
 

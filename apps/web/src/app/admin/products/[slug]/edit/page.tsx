@@ -293,9 +293,7 @@ export default function EditProduct({ params }: Props) {
                 onChange={(e) => setGenderTag(e.target.value)}
                 className="block w-full px-3 py-2 border border-asc-border-strong bg-white rounded-md shadow-sm focus:ring-asc-matte focus:border-asc-matte sm:text-sm"
               >
-                <option value="unisex">Unisex (Both Men & Women)</option>
-                <option value="men">Men's Only</option>
-                <option value="women">Women's Only</option>
+                <option value="unisex">Unisex</option>
               </select>
             </div>
           </div>
